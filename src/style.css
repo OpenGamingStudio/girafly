@@ -130,3 +130,13 @@ body {
   .chip { min-height: 44px; }
 }
 #slot-tabs .btn { flex: none; padding: 0.2rem 0.7rem; }
+
+.banner { display: flex; align-items: center; gap: 0.6rem; max-width: min(24rem, 90%); padding: 0.4rem 0.9rem 0.4rem 0.6rem; background: #fff6e0; border: 3px solid #16110F; border-radius: 1rem; box-shadow: 4px 4px 0 #16110F; }
+.banner[hidden] { display: none; }
+.gauge { display: block; height: 8px; width: 100%; background: #fff; border: 2px solid #16110F; border-radius: 999px; overflow: hidden; }
+.gauge > i { display: block; height: 100%; background: #2fa35b; }
+.bchip { display: flex; align-items: center; gap: 0.4rem; min-height: 44px; min-width: 9rem; padding: 0 0.7rem 0 0.4rem; font-weight: 700; font-size: 0.875rem; background: #fff6e0; border: 3px solid #16110F; border-radius: 999px; box-shadow: 3px 3px 0 #16110F; }
+.bchip .nm { display: block; line-height: 1.1; }
+.row { display: flex; align-items: center; gap: 0.7rem; padding: 0.4rem 0.6rem; background: #fff; border: 3px solid #16110F; border-radius: 0.9rem; }
+.ico { display: flex; width: 2.5rem; flex: none; justify-content: center; }
+.tag { display: inline-block; padding: 0 0.5rem; font-weight: 700; font-size: 0.75rem; border: 2px solid #16110F; border-radius: 999px; background: #ffc43d; }

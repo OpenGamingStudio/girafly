@@ -28,7 +28,11 @@
         <svg class="h-6 w-6" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="#ffc928" stroke="#16110F" stroke-width="3"/><ellipse cx="12" cy="12" rx="3.2" ry="5" fill="none" stroke="#c98a00" stroke-width="2"/></svg>
         <span class="sr-only">Pièces :</span><span id="hud-coins">0</span>
       </p>
-      <p id="hud-bonus" class="chip absolute left-1/2 top-14 -translate-x-1/2 text-sm" hidden></p>
+      <ul id="hud-bonus" class="absolute left-0 top-14 flex flex-col items-start gap-1" aria-label="Bonus actifs"></ul>
+      <div id="hud-banner" class="banner absolute left-1/2 top-16 -translate-x-1/2" hidden>
+        <span id="bn-icon"></span>
+        <p class="min-w-0"><b id="bn-name" class="block text-base leading-tight"></b><span id="bn-fx" class="block text-sm leading-tight"></span></p>
+      </div>
       <p id="hud-ready" class="chip absolute bottom-0 left-1/2 -translate-x-1/2 text-lg">Maintiens pour décoller !</p>
     </div>
   </div>
@@ -44,7 +48,7 @@
         <button id="b-shop" type="button" class="btn">Boutique</button>
         <button id="b-missions" type="button" class="btn">Missions</button>
         <button id="b-options" type="button" class="btn">Options</button>
-        <button id="b-help" type="button" class="btn">Aide</button>
+        <button id="b-help" type="button" class="btn" aria-label="Aide : bonus et dangers">? Aide</button>
       </div>
     </div>
   </section>
@@ -54,6 +58,7 @@
     <div class="plaque m-auto flex w-full max-w-sm flex-col gap-3 text-center">
       <h2 id="t-pause" class="text-3xl font-bold">Pause</h2>
       <button id="b-resume" type="button" class="btn btn-main">Reprendre</button>
+      <button id="b-pause-help" type="button" class="btn">? Bonus et dangers</button>
       <button id="b-quit" type="button" class="btn">Quitter la partie</button>
     </div>
   </section>
@@ -83,10 +88,10 @@
     <div class="plaque m-auto flex h-full max-h-[34rem] w-full max-w-4xl flex-col gap-2 overflow-hidden">
       <div class="flex flex-wrap items-center gap-2">
         <h2 id="t-shop" class="mr-auto text-2xl font-bold">Boutique</h2>
-        <p class="chip"><span class="sr-only">Pièces :</span><span id="shop-coins">0</span> pièces</p>
-        <div role="tablist" aria-label="Boutique" class="flex gap-2">
-          <button id="tab-gadgets" role="tab" type="button" class="btn tab" aria-selected="true" aria-controls="p-gadgets">Gadgets</button>
-          <button id="tab-style" role="tab" type="button" class="btn tab" aria-selected="false" aria-controls="p-style">Style</button>
+        <p class="chip"><span class="sr-only">Pièces possédées :</span><span id="shop-coins">0</span> pièces</p>
+        <div role="tablist" aria-label="Catégories de la boutique" class="flex gap-2">
+          <button id="tab-gadgets" role="tab" type="button" class="btn tab" aria-selected="true" aria-controls="p-gadgets">Améliorations</button>
+          <button id="tab-style" role="tab" type="button" class="btn tab" aria-selected="false" aria-controls="p-style">Cosmétiques</button>
         </div>
         <button id="b-shop-close" type="button" class="btn">Retour</button>
       </div>
@@ -128,18 +133,20 @@
     </div>
   </section>
 
-  <!-- Aide -->
+  <!-- Aide / tuto -->
   <section id="s-help" hidden class="screen edge-pad" aria-labelledby="t-help">
-    <div class="plaque m-auto flex w-full max-w-lg flex-col gap-2 text-sm">
-      <h2 id="t-help" class="text-2xl font-bold">Comment jouer</h2>
-      <ul class="flex list-disc flex-col gap-1 pl-5">
-        <li><b>Maintiens</b> l'écran (ou la souris, ou Espace / flèche haut) : le jetpack te fait monter. <b>Relâche</b> : tu descends.</li>
-        <li>Évite les <b>barres laser</b> (rouges, à losanges), les <b>missiles</b> (une alerte te prévient 1 s avant) et les <b>acacias électrifiés</b> (verts, à épines).</li>
-        <li>Ramasse les pièces et les bonus : <b>bouclier</b> (1 coup), <b>aimant</b>, <b>Ballon-zèbre</b> (vol stable, 1 coup).</li>
-        <li><b>Frôle un laser avec la tête</b> (le long cou de Gigi !) : pièces bonus.</li>
-        <li>Le cou n'est pas fatal : seuls le corps et la tête comptent.</li>
-      </ul>
-      <button id="b-help-close" type="button" class="btn">Retour</button>
+    <div class="plaque m-auto flex h-full max-h-[34rem] w-full max-w-2xl flex-col gap-2 overflow-hidden text-sm">
+      <div class="flex items-center gap-2">
+        <h2 id="t-help" class="mr-auto text-2xl font-bold">Comment jouer</h2>
+        <button id="b-help-close" type="button" class="btn">Retour</button>
+      </div>
+      <div class="min-h-0 flex-1 overflow-y-auto pr-1">
+        <p class="mb-2"><b>Maintiens</b> l'écran (ou la souris, ou Espace) pour monter avec le jetpack, <b>relâche</b> pour descendre. Ramasse les pièces, évite les dangers. Frôler un laser avec la tête rapporte des pièces !</p>
+        <h3 class="mb-1 text-lg font-bold">Bonus</h3>
+        <ul id="help-bonus" class="mb-2 flex flex-col gap-2"></ul>
+        <h3 class="mb-1 text-lg font-bold">Dangers</h3>
+        <ul id="help-danger" class="flex flex-col gap-2"></ul>
+      </div>
     </div>
   </section>
 

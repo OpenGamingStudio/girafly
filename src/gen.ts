@@ -5,6 +5,8 @@ import { Rng } from './rng';
 export const B_SHIELD = 0;
 export const B_MAGNET = 1;
 export const B_BALLOON = 2;
+export const BONUS_W_MAGNET = 0.11;
+export const BONUS_W_BALLOON = 0.09;
 const MAX_OBS = 12;
 const MAX_COINS = 72;
 
@@ -75,6 +77,10 @@ export interface GenOpts {
   ramp?: boolean;
   /** Pondération des bonus bouclier (amélioration de la boutique). */
   shieldChance: number;
+  /** Dernier bonus posé (-1 aucun) : jamais deux fois le même de suite. */
+  lastBonus?: number;
+  /** Faux tant que le délai de recharge du bouclier n'est pas écoulé. */
+  shieldOk?: boolean;
 }
 
 function addCoin(s: Seg, x: number, y: number): void {
@@ -276,10 +282,14 @@ export function generate(s: Seg, r: Rng, x0: number, yIn: number, o: GenOpts): v
   if (!o.calm) {
     const x = s.x0 + r.range(120, 240);
     const roll = r.next();
+    const last = o.lastBonus ?? -1;
+    const w = [o.shieldOk === false || last === B_SHIELD ? 0 : o.shieldChance * 0.45, last === B_MAGNET ? 0 : BONUS_W_MAGNET, last === B_BALLOON ? 0 : BONUS_W_BALLOON];
+    const tot = w[0] + w[1] + w[2];
     let k = -1;
-    if (roll < o.shieldChance * 0.5) k = B_SHIELD;
-    else if (roll < o.shieldChance * 0.5 + 0.1) k = B_MAGNET;
-    else if (roll < o.shieldChance * 0.5 + 0.15) k = B_BALLOON;
+    if (roll < tot) {
+      let a = roll;
+      k = a < w[0] ? B_SHIELD : (a -= w[0]) < w[1] ? B_MAGNET : B_BALLOON;
+    }
     if (k >= 0) {
       s.bx[0] = x;
       s.by[0] = pathY(s, x);

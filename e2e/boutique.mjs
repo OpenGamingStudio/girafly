@@ -1,0 +1,43 @@
+// Contrôle V2 PR3 (boutique, bonus, tuto) : node e2e/boutique.mjs <url du build e2e> <dossier>
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+const pp = process.env.PUPPETEER ?? 'puppeteer-core';
+const { default: puppeteer } = await import(pp);
+const [url, out] = process.argv.slice(2);
+mkdirSync(out, { recursive: true });
+const b = process.env.BROWSER_URL ? await puppeteer.connect({ browserURL: process.env.BROWSER_URL }) : await puppeteer.launch({ executablePath: process.env.CHROME ?? '/usr/bin/google-chrome', args: ['--no-sandbox'], headless: 'new' });
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const errs = [];
+const p = await b.newPage();
+p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
+p.on('pageerror', (e) => errs.push(e.message));
+for (const [w, h] of [[844, 390], [667, 320], [568, 320]]) {
+  await p.setViewport({ width: w, height: h, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
+  await p.goto(url, { waitUntil: 'load' });
+  const tag = `${w}x${h}`;
+  await p.click('#b-shop'); await wait(300);
+  await p.screenshot({ path: join(out, `shop-ameliorations-${tag}.png`) });
+  await p.click('#tab-style'); await wait(300);
+  await p.screenshot({ path: join(out, `shop-cosmetiques-${tag}.png`) });
+  await p.click('#b-shop-close'); await wait(200);
+  await p.click('#b-help'); await wait(300);
+  await p.screenshot({ path: join(out, `tuto-${tag}.png`) });
+  const ov = await p.evaluate(() => [document.documentElement.scrollWidth > innerWidth, [...document.querySelectorAll('button:not([hidden])')].filter((e) => e.offsetParent && e.getBoundingClientRect().height < 44).map((e) => e.id || e.textContent)]);
+  console.log(tag, 'défilement horizontal:', ov[0], 'cibles <44:', ov[1].join(',') || 'aucune');
+  await p.click('#b-help-close'); await wait(200);
+  await p.click('#b-play'); await wait(400);
+  await p.mouse.move(300, 200); await p.mouse.down();
+  await p.evaluate(() => { const g = window.__gf.game(); g.invuln = 999; g.shield = true; g.magnetT = 4; g.balloonT = 6; g.pickK = 2; });
+  await p.evaluate(() => document.dispatchEvent(new Event('x')));
+  await wait(300);
+  await p.screenshot({ path: join(out, `hud-bonus-${tag}.png`) });
+  await p.mouse.up();
+  await p.click('#btn-pause'); await wait(200);
+  await p.click('#b-pause-help'); await wait(300);
+  await p.screenshot({ path: join(out, `tuto-pause-${tag}.png`) });
+  await p.click('#b-help-close'); await wait(200);
+  console.log(tag, 'retour pause:', await p.evaluate(() => !document.getElementById('s-pause').hidden));
+}
+console.log(errs.length ? 'ERREURS ' + errs.join(' | ') : 'aucune erreur console');
+await p.close();
+b.disconnect ? b.disconnect() : await b.close();

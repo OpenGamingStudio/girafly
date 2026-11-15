@@ -12,6 +12,8 @@ import { Rng } from './rng';
 export const EV_COIN = 1;
 export const EV_HIT = 2; // coup absorbé (bouclier / ballon)
 export const EV_BONUS = 4;
+/** Délai de recharge du bouclier (unités de distance, ≈ 25 s à la vitesse de départ). */
+export const SHIELD_COOL_X = 5500;
 export const EV_GRAZE = 8;
 export const EV_WARN = 16;
 export const EV_DEAD = 32;
@@ -94,6 +96,10 @@ export class Game {
   rawCoins = 0;
   grazes = 0;
   bonuses = 0;
+  lastBonus = -1;
+  lastShieldX = -1e9;
+  /** Dernier bonus ramassé (pour l'annonce du HUD). */
+  pickK = -1;
   balloons = 0;
   shieldsUsed = 0;
   missilesFired = 0;
@@ -190,7 +196,13 @@ export class Game {
       calm: this.segCount === 0,
       ramp: this.nextX < SPEED0 * RAMP_T,
       shieldChance: this.perks.shieldChance,
+      lastBonus: this.lastBonus,
+      shieldOk: this.nextX - this.lastShieldX >= SHIELD_COOL_X,
     });
+    if (s.nBonus > 0) {
+      this.lastBonus = s.bk[0];
+      if (s.bk[0] === B_SHIELD) this.lastShieldX = s.bx[0];
+    }
     const k = this.segCount & 7;
     this.gX[k] = s.x0; this.gA[k] = s.yIn; this.gB[k] = s.yOut;
     this.segCount++;
@@ -557,6 +569,7 @@ export class Game {
       if (dx * dx + dy * dy < 30 * 30) {
         this.bonOn[i] = 0;
         this.bonuses++;
+        this.pickK = this.bonK[i];
         this.ev |= EV_BONUS;
         const k = this.bonK[i];
         if (k === B_SHIELD) this.shield = true;

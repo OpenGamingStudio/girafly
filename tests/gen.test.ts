@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PATH_PAD, SEG_LEN } from '../src/config';
-import { MAX_PATH_DELTA, generate, newSeg, pathY } from '../src/gen';
+import { B_SHIELD, MAX_PATH_DELTA, generate, newSeg, pathY } from '../src/gen';
 import { playerGap, PY_MAX, PY_MIN } from '../src/geom';
 import { Rng } from '../src/rng';
 
@@ -61,5 +61,26 @@ describe('générateur de segments : garantie de passage', () => {
     expect(a.nObs).toBe(b.nObs);
     expect(a.yOut).toBe(b.yOut);
     expect(a.nCoins).toBe(b.nCoins);
+  });
+});
+
+describe('tirage des bonus', () => {
+  it('ne pose jamais deux fois le même bonus de suite et respecte la recharge du bouclier', () => {
+    const s = newSeg();
+    const r = new Rng(11);
+    let last = -1;
+    let shields = 0;
+    let lastShield = -1e9;
+    for (let i = 1; i < 4000; i++) {
+      const x = i * SEG_LEN;
+      const shieldOk = x - lastShield >= 5500;
+      generate(s, r, x, 200, { diff: 0.5, calm: false, shieldChance: 0.48, lastBonus: last, shieldOk });
+      if (s.nBonus) {
+        expect(s.bk[0]).not.toBe(last);
+        if (s.bk[0] === B_SHIELD) { expect(shieldOk).toBe(true); lastShield = s.bx[0]; shields++; }
+        last = s.bk[0];
+      }
+    }
+    expect(shields).toBeGreaterThan(50);
   });
 });
