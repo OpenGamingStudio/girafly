@@ -9,6 +9,7 @@ import { render } from './render';
 import { BONUSES, DANGERS, bonusInfo } from './info';
 import { ICONS } from './icons';
 import { BIOME_NAMES, biomeOf } from './scenery';
+import { enterFullscreen, exitFullscreen, fullscreenSupported, isFullscreen, isInstalled, needsHomeScreenHint } from './display';
 import { boom, clearFx, coinBurst, dust, smoke, sparks, updateFx } from './fx';
 import { PY_MAX } from './geom';
 import { TUTO_KIND, applyRun, missionText } from './missions';
@@ -55,6 +56,7 @@ function show(s: Screen, focusId?: string): void {
   prevScreen = screen;
   screen = s;
   for (const [k, el] of Object.entries(panels)) if (el) el.hidden = k !== s;
+  if (typeof showHint === 'function') showHint();
   hud.hidden = !(s === 'ready' || s === 'play' || s === 'pause');
   $('hud-ready').hidden = s !== 'ready';
   if (focusId) window.setTimeout(() => $(focusId).focus(), 0);
@@ -377,12 +379,24 @@ window.addEventListener('keydown', (e) => {
 function paintOptions(): void {
   $('o-sound').setAttribute('aria-checked', String(save.options.sound));
   $('o-motion').setAttribute('aria-checked', String(reduced()));
+  const full = $<HTMLButtonElement>('o-full'), note = $('o-full-note');
+  const can = fullscreenSupported() && !isInstalled();
+  full.disabled = !can;
+  full.setAttribute('aria-checked', String(isInstalled() || isFullscreen()));
+  note.hidden = can;
+  note.textContent = isInstalled() ? 'Girafly est déjà ouvert en plein écran (app installée).' : needsHomeScreenHint()
+    ? 'Safari sur iPhone n’a pas de plein écran : ajoute Girafly à l’écran d’accueil (Partager, puis Sur l’écran d’accueil).' : 'Ce navigateur ne propose pas le plein écran.';
   ($('o-volume') as HTMLInputElement).value = String(Math.round(save.options.volume * 100));
 }
 function openOptions(): void { paintOptions(); show('options', 'o-sound'); }
 $('o-sound').addEventListener('click', () => {
   save.options.sound = !save.options.sound; sound.on = save.options.sound; flush(); paintOptions(); sound.unlock(); sound.ui();
 });
+$('o-full').addEventListener('click', async () => {
+  if (isFullscreen()) { save.options.fullscreen = false; await exitFullscreen(); } else { save.options.fullscreen = true; await enterFullscreen(); }
+  flush(); paintOptions();
+});
+document.addEventListener('fullscreenchange', () => { resize(); if (screen === 'options') paintOptions(); });
 $('o-motion').addEventListener('click', () => {
   save.options.reduceMotion = !reduced(); flush(); applyMotion(); paintOptions();
 });
@@ -632,6 +646,21 @@ function drawPreview(): void {
 }
 
 void ITEMS; void EV_DEAD;
+// ---------- Plein écran, installation ----------
+// Premier tap (un geste est obligatoire) : plein écran + verrou paysage si le navigateur sait ; sinon rien, sans erreur.
+document.addEventListener('pointerdown', () => { if (save.options.fullscreen) void enterFullscreen(); }, { once: true });
+const A2HS_KEY = 'girafly-a2hs';
+const a2hs = $('s-a2hs');
+let hintPending = needsHomeScreenHint();
+function showHint(): void { a2hs.hidden = !(hintPending && screen === 'title'); }
+function seenHint(): boolean { try { return store?.getItem(A2HS_KEY) === '1'; } catch { return false; } }
+if (seenHint()) hintPending = false;
+showHint();
+$('b-a2hs-close').addEventListener('click', () => { hintPending = false; showHint(); try { store?.setItem(A2HS_KEY, '1'); } catch { /* sans stockage : le message reviendra */ } });
+if ('serviceWorker' in navigator && import.meta.env.PROD && import.meta.env.MODE === 'production') {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* hors ligne indisponible : le jeu marche quand même */ }); });
+}
+
 // ---------- Démarrage ----------
 applyMotion();
 mq.addEventListener?.('change', applyMotion);

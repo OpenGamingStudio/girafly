@@ -9,11 +9,16 @@
 <meta name="theme-color" content="#6ec6ff">
 <meta name="referrer" content="no-referrer">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Girafly">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script type="module" src="/src/main.ts"></script>
 </head>
 <body class="font-sans">
-<main id="app" class="fixed inset-0 overflow-hidden">
+<main id="app" class="app overflow-hidden">
   <canvas id="stage" class="absolute inset-0 h-full w-full touch-none" role="img" aria-label="Plateau de jeu : maintiens l'écran, la souris ou la touche Espace pour monter avec le jetpack, relâche pour descendre"></canvas>
   <div id="live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
@@ -122,14 +127,20 @@
 
   <!-- Options -->
   <section id="s-options" hidden class="screen edge-pad" aria-labelledby="t-options">
-    <div class="plaque m-auto flex w-full max-w-md flex-col gap-3">
-      <h2 id="t-options" class="text-2xl font-bold">Options</h2>
-      <button id="o-sound" type="button" role="switch" aria-checked="true" class="btn justify-between"><span>Son</span><span class="sw" aria-hidden="true"></span></button>
-      <button id="o-motion" type="button" role="switch" aria-checked="false" class="btn justify-between"><span>Mouvement réduit</span><span class="sw" aria-hidden="true"></span></button>
-      <label class="flex items-center justify-between gap-3 text-base font-bold">Volume
-        <input id="o-volume" type="range" min="0" max="100" step="5" class="h-11 w-44 accent-tomato">
-      </label>
-      <button id="b-options-close" type="button" class="btn">Retour</button>
+    <div class="plaque m-auto flex w-full max-w-xl flex-col gap-2">
+      <div class="flex items-center gap-2">
+        <h2 id="t-options" class="mr-auto text-2xl font-bold">Options</h2>
+        <button id="b-options-close" type="button" class="btn">Retour</button>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <button id="o-sound" type="button" role="switch" aria-checked="true" class="btn justify-between"><span>Son</span><span class="sw" aria-hidden="true"></span></button>
+        <button id="o-motion" type="button" role="switch" aria-checked="false" class="btn justify-between"><span>Mouvement réduit</span><span class="sw" aria-hidden="true"></span></button>
+        <button id="o-full" type="button" role="switch" aria-checked="false" class="btn justify-between"><span>Plein écran</span><span class="sw" aria-hidden="true"></span></button>
+        <label class="flex items-center justify-between gap-2 text-base font-bold">Volume
+          <input id="o-volume" type="range" min="0" max="100" step="5" class="h-11 w-24 accent-tomato sm:w-28">
+        </label>
+      </div>
+      <p id="o-full-note" class="text-sm" hidden></p>
     </div>
   </section>
 
@@ -147,6 +158,14 @@
         <h3 class="mb-1 text-lg font-bold">Dangers</h3>
         <ul id="help-danger" class="flex flex-col gap-2"></ul>
       </div>
+    </div>
+  </section>
+
+  <!-- iPhone : pas de plein écran dans Safari, seulement via l'écran d'accueil -->
+  <section id="s-a2hs" hidden class="a2hs" aria-labelledby="t-a2hs">
+    <div class="plaque flex w-full max-w-xl items-center gap-3 text-sm">
+      <p class="min-w-0 flex-1"><b id="t-a2hs" class="block text-base">Jouer en plein écran sur iPhone</b>Safari ne sait pas passer en plein écran. Touche <b>Partager</b>, puis <b>Sur l’écran d’accueil</b> : Girafly s’ouvrira sans barre d’adresse.</p>
+      <button id="b-a2hs-close" type="button" class="btn shrink-0">Compris</button>
     </div>
   </section>
 
