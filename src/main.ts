@@ -6,6 +6,8 @@ import {
 } from './catalog';
 import { DT, H, MAX_DPR } from './config';
 import { render } from './render';
+import { BONUSES, DANGERS, bonusInfo } from './info';
+import { ICONS } from './icons';
 import { boom, clearFx, coinBurst, dust, smoke, sparks, updateFx } from './fx';
 import { PY_MAX } from './geom';
 import { TUTO_KIND, applyRun, missionText } from './missions';
@@ -99,7 +101,7 @@ function startRun(): void {
   game.setView(viewW);
   nextMilestone = 100;
   held = false;
-  lastDist = -1; lastCoins = -1; lastBonus = '';
+  lastDist = -1; lastCoins = -1; lastRatio = [-1, -1, -1]; bannerT = 0; elBanner.hidden = true;
   show('ready');
   paintHud();
   say('Maintiens l’écran pour décoller.');
@@ -150,21 +152,75 @@ function endRun(): void {
 }
 
 // ---------- HUD ----------
-let lastDist = -1, lastCoins = -1, lastBonus = '';
+let lastDist = -1, lastCoins = -1;
 const elDist = $('hud-dist'), elCoins = $('hud-coins'), elBonus = $('hud-bonus');
 function paintHud(): void {
   if (game.dist !== lastDist) { lastDist = game.dist; elDist.textContent = String(lastDist); }
   if (game.coins !== lastCoins) { lastCoins = game.coins; elCoins.textContent = String(lastCoins); }
-  let b = '';
-  if (game.shield) b += 'Bouclier ';
-  if (game.magnetT > 0) b += `Aimant ${Math.ceil(game.magnetT)} s `;
-  if (game.balloonT > 0) b += `Ballon-zèbre ${Math.ceil(game.balloonT)} s`;
-  if (b !== lastBonus) { lastBonus = b; elBonus.textContent = b.trim(); elBonus.hidden = !b; }
+  paintBonus();
+}
+
+// Bonus actifs : une pastille par type (icône, nom, jauge de durée restante).
+const bonusChips = BONUSES.map((bi) => {
+  const li = document.createElement('li');
+  li.className = 'bchip';
+  li.hidden = true;
+  li.insertAdjacentHTML('afterbegin', ICONS[bi.icon]);
+  const box = document.createElement('span');
+  box.className = 'min-w-0 flex-1';
+  const nm = document.createElement('span');
+  nm.className = 'nm';
+  nm.textContent = bi.name;
+  box.appendChild(nm);
+  let bar: HTMLElement | null = null;
+  if (bi.kind !== 0) {
+    const g = document.createElement('span');
+    g.className = 'gauge mt-1';
+    bar = document.createElement('i');
+    g.appendChild(bar);
+    box.appendChild(g);
+  }
+  li.appendChild(box);
+  elBonus.appendChild(li);
+  return { li, bar };
+});
+let lastRatio = [-1, -1, -1];
+function paintBonus(): void {
+  const r = [game.shield ? 1 : 0, game.magnetT > 0 ? game.magnetT / game.perks.magnetDur : 0, game.balloonT > 0 ? game.balloonT / game.perks.balloonDur : 0];
+  for (let i = 0; i < 3; i++) {
+    if (r[i] === lastRatio[i]) continue;
+    lastRatio[i] = r[i];
+    const c = bonusChips[i];
+    c.li.hidden = r[i] <= 0;
+    if (c.bar) c.bar.style.width = `${Math.round(r[i] * 100)}%`;
+  }
+}
+
+let bannerT = 0;
+function announceText(name: string, fx: string): void {
+  $('bn-icon').textContent = '';
+  $('bn-name').textContent = name;
+  $('bn-fx').textContent = fx;
+  elBanner.hidden = false;
+  bannerT = 2;
+}
+const elBanner = $('hud-banner');
+function announce(k: number): void {
+  const bi = bonusInfo(k);
+  if (!bi) return;
+  const ic = $('bn-icon');
+  ic.textContent = '';
+  ic.insertAdjacentHTML('afterbegin', ICONS[bi.icon]);
+  $('bn-name').textContent = bi.name;
+  $('bn-fx').textContent = `${bi.fx} · ${bi.dur(game.perks)}`;
+  elBanner.hidden = false;
+  bannerT = 2.6;
+  say(`${bi.name} : ${bi.fx}, ${bi.dur(game.perks)}.`);
 }
 
 function onEvents(e: number): void {
   if (e & EV_COIN) { sound.coin(); coinBurst(game.x + 8, game.y - 26, reduced()); happy = 1.2; }
-  if (e & EV_BONUS) { sound.bonus(); }
+  if (e & EV_BONUS) { sound.bonus(); announce(game.pickK); }
   if (e & EV_GRAZE) { sound.graze(); say('Frôlé !'); }
   if (e & EV_WARN) { sound.warn(); }
   if (e & EV_BEAM) { sound.beam(); shake = Math.max(shake, 0.4); }
@@ -172,6 +228,7 @@ function onEvents(e: number): void {
   if (e & EV_EVENT_END) { sound.bonus(); say('Événement survécu : pièces bonus !'); }
   if (e & EV_HIT) { sound.shieldBreak(); shake = 1; flash = 1; boom(game.x, game.y - 6, reduced()); sparks(game.x, game.y - 6, 10, reduced()); }
   if (e & EV_BALLOON_END && !(e & EV_HIT)) say('Le ballon s’envole.');
+  if (e & EV_BALLOON_END) { announceText('Ballon éclaté', e & EV_HIT ? 'Il a pris le choc pour toi' : 'Fin du vol'); }
   if (e & EV_DEAD) {
     sound.dead(); shake = 1; flash = 1; boom(game.x, game.y - 6, reduced());
     if (navigator.userActivation?.hasBeenActive && navigator.vibrate) navigator.vibrate(60);
@@ -209,6 +266,7 @@ function frame(now: number): void {
     }
     happy = Math.max(0, happy - dt);
     if (game.dist >= nextMilestone) { say(`${nextMilestone} mètres`); nextMilestone += 100; }
+    if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) elBanner.hidden = true; }
     paintHud();
     if (game.mode === 'over') endRun();
   } else if (screen === 'title' || screen === 'over' || screen === 'shop' || screen === 'missions' || screen === 'options' || screen === 'help') {
@@ -288,8 +346,15 @@ on('b-missions', openMissions);
 on('b-missions-close', () => openTitle('b-missions'));
 on('b-options', openOptions);
 on('b-options-close', () => openTitle('b-options'));
-on('b-help', () => show('help', 'b-help-close'));
-on('b-help-close', () => openTitle('b-help'));
+let helpFrom: Screen = 'title';
+function openHelp(from: Screen): void {
+  helpFrom = from;
+  paintHelp();
+  show('help', 'b-help-close');
+}
+on('b-help', () => openHelp('title'));
+on('b-pause-help', () => openHelp('pause'));
+on('b-help-close', () => { if (helpFrom === 'pause') show('pause', 'b-pause-help'); else openTitle('b-help'); });
 
 const countText = (): string => `${save.missionsDone} mission${save.missionsDone > 1 ? 's' : ''}`;
 function openTitle(focus = 'b-play'): void {
@@ -341,6 +406,33 @@ function openMissions(): void {
   show('missions', 'b-missions-close');
 }
 
+// ---------- Tuto ----------
+function helpRow(icon: string, name: string, text: string, tag?: string): HTMLElement {
+  const li = document.createElement('li');
+  li.className = 'row';
+  const ic = document.createElement('span');
+  ic.className = 'ico';
+  ic.insertAdjacentHTML('afterbegin', icon);
+  const p = document.createElement('p');
+  const b = document.createElement('b');
+  b.textContent = name;
+  p.append(b);
+  if (tag) { const t = document.createElement('span'); t.className = 'tag ml-2'; t.textContent = tag; p.append(t); }
+  const d = document.createElement('span');
+  d.className = 'block';
+  d.textContent = text;
+  p.append(d);
+  li.append(ic, p);
+  return li;
+}
+function paintHelp(): void {
+  const pk = perksFor(save.upgrades);
+  const lb = $('help-bonus'), ld = $('help-danger');
+  lb.textContent = ''; ld.textContent = '';
+  for (const b of BONUSES) lb.append(helpRow(ICONS[b.icon], b.name, b.long, b.dur(pk)));
+  for (const d of DANGERS) ld.append(helpRow(ICONS[d.icon], d.name, d.text));
+}
+
 // ---------- Boutique ----------
 let shopTab: 'gadgets' | 'style' = 'gadgets';
 let slot: Slot = 'coat';
@@ -373,18 +465,22 @@ function paintShop(): void {
 function paintGadgets(): void {
   const ul = $('gadgets');
   ul.textContent = '';
+  const icons: Record<string, string> = { jetpack: ICONS.missile, magnet: ICONS.magnet, shield: ICONS.shield, balloon: ICONS.balloon, mult: ICONS.coin };
   for (const u of UPGRADES) {
     const lv = save.upgrades[u.key];
     const li = document.createElement('li');
     li.className = 'flex items-center gap-3 rounded-xl border-[3px] border-ink bg-white px-3 py-2';
+    const ic = document.createElement('span');
+    ic.className = 'ico shrink-0';
+    ic.insertAdjacentHTML('afterbegin', icons[u.key] ?? '');
     const txt = document.createElement('div');
     txt.className = 'min-w-0 flex-1';
     const head = document.createElement('p');
     head.className = 'font-bold';
     head.append(`${u.name} `);
-    const sr = document.createElement('span');
-    sr.className = 'sr-only';
-    sr.textContent = `niveau ${lv} sur 5`;
+    const lvl = document.createElement('span');
+    lvl.className = 'tag ml-1';
+    lvl.textContent = `Niveau ${lv}/5`;
     const pips = document.createElement('span');
     pips.className = 'ml-2 inline-flex gap-1 align-middle';
     pips.setAttribute('aria-hidden', 'true');
@@ -393,22 +489,31 @@ function paintGadgets(): void {
       pip.className = i < lv ? 'pip on' : 'pip';
       pips.appendChild(pip);
     }
-    head.append(sr, pips);
+    head.append(lvl, pips);
     const desc = document.createElement('p');
     desc.className = 'text-sm';
-    const eff = document.createElement('b');
-    eff.textContent = u.effect(lv);
-    desc.append(`${u.desc} `, eff);
-    txt.append(head, desc);
+    desc.textContent = u.desc;
+    const eff = document.createElement('p');
+    eff.className = 'text-sm';
+    const now = document.createElement('b');
+    now.textContent = u.effect(lv);
+    eff.append('Maintenant : ', now);
+    if (lv < 5) { eff.append(' → niveau suivant : '); const nx = document.createElement('b'); nx.textContent = u.effect(lv + 1); eff.append(nx); }
+    txt.append(head, desc, eff);
+    const act = document.createElement('div');
+    act.className = 'flex w-36 shrink-0 flex-col items-stretch gap-1 text-center';
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'btn shrink-0';
-    if (lv >= 5) { b.textContent = 'Max'; b.disabled = true; }
+    b.className = 'btn';
+    const note = document.createElement('span');
+    note.className = 'text-xs font-bold';
+    if (lv >= 5) { b.textContent = 'Niveau max'; b.disabled = true; }
     else {
       const cost = u.costs[lv];
-      b.textContent = `${cost} pièces`;
+      b.textContent = `Acheter ${cost}`;
       b.setAttribute('aria-label', `Améliorer ${u.name} au niveau ${lv + 1} pour ${cost} pièces`);
       b.disabled = save.coins < cost;
+      if (b.disabled) note.textContent = `Il te manque ${cost - save.coins} pièces`;
       b.addEventListener('click', () => {
         if (save.coins < cost) return;
         save.coins -= cost; save.upgrades[u.key] = lv + 1; flush(); sound.bonus(); paintShop();
@@ -416,7 +521,8 @@ function paintGadgets(): void {
         window.setTimeout(() => ($('gadgets').querySelectorAll('button')[UPGRADES.indexOf(u)] as HTMLElement | undefined)?.focus(), 0);
       });
     }
-    li.append(txt, b);
+    act.append(b, note);
+    li.append(ic, txt, act);
     ul.appendChild(li);
   }
 }
@@ -459,9 +565,9 @@ function paintStyle(): void {
     let state = '';
     if (!it) state = eq ? 'Équipé' : 'Retirer';
     else if (eq) state = 'Équipé';
-    else if (ownsItem(it)) state = 'Possédé';
+    else if (ownsItem(it)) state = 'Acheté';
     else if (!isUnlocked(it, unl())) state = `Verrouillé · ${unlockText(it)}`;
-    else state = `${it.price} pièces`;
+    else state = `Acheter · ${it.price}`;
     const lab = document.createElement('span');
     lab.textContent = name;
     const st = document.createElement('span');
@@ -494,9 +600,9 @@ function paintSelection(): void {
     return;
   }
   const real = itemById(it.id) ?? it;
-  if (!isUnlocked(real, unl())) { act.textContent = `Verrouillé : ${unlockText(real)}`; act.disabled = true; act.onclick = null; return; }
-  act.textContent = `Acheter ${real.price}`;
+  if (!isUnlocked(real, unl())) { act.textContent = `Verrouillé : ${unlockText(real)} à accomplir`; act.disabled = true; act.onclick = null; return; }
   act.disabled = save.coins < real.price;
+  act.textContent = act.disabled ? `Acheter ${real.price} (il manque ${real.price - save.coins})` : `Acheter ${real.price}`;
   act.onclick = () => {
     if (save.coins < real.price) return;
     save.coins -= real.price; save.owned.push(real.id); save.equipped[real.slot] = real.id; flush(); sound.bonus();
