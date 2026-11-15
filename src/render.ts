@@ -3,7 +3,7 @@ import { INK, Loadout, drawGigi, drawTrailShape, star } from './art';
 import { B_BALLOON, B_MAGNET, B_SHIELD } from './gen';
 import { K_ACACIA, K_BEAM, K_LASER, K_METEOR, Obs } from './geom';
 import { drawFx } from './fx';
-import { drawBackground } from './scenery';
+import { biomeOf, drawBackground } from './scenery';
 import { BEAM_WARN, E_DRONE, E_WIND, EVENT_NAMES, Game, METEOR_WARN, SWEEP_HALF } from './sim';
 
 export interface View {
@@ -16,6 +16,13 @@ export interface View {
 
 const mod = (a: number, b: number) => ((a % b) + b) % b;
 
+// Obstacle fixe propre à chaque biome : acacia électrifié (savane), poteau-antenne (ville), cristal (espace).
+const SKIN = [
+  { core: '#7a4b22', spike: '#2fa35b', zap: '#ffe066' },
+  { core: '#5a6475', spike: '#ffd23f', zap: '#5af0d0' },
+  { core: '#4a3fa0', spike: '#5af0d0', zap: '#ffffff' },
+];
+let skin = SKIN[0];
 const DASH = [5, 6], DASH2 = [8, 5], NODASH: number[] = [];
 function drawObs(c: CanvasRenderingContext2D, o: Obs, cam: number, t: number, reduce: boolean): void {
   const x1 = o.x1 - cam, x2 = o.x2 - cam;
@@ -46,15 +53,15 @@ function drawObs(c: CanvasRenderingContext2D, o: Obs, cam: number, t: number, re
   } else if (o.kind === K_ACACIA) {
     // branche d'acacia électrifiée : bois, épines en dents de scie, éclairs jaunes
     c.strokeStyle = INK; c.lineWidth = o.r * 2 + 4; c.beginPath(); c.moveTo(x1, o.y1); c.lineTo(x2, o.y2); c.stroke();
-    c.strokeStyle = '#7a4b22'; c.lineWidth = o.r * 2; c.stroke();
+    c.strokeStyle = skin.core; c.lineWidth = o.r * 2; c.stroke();
     const dx = x2 - x1, dy = o.y2 - o.y1, L = Math.hypot(dx, dy) || 1;
-    c.fillStyle = '#2fa35b'; c.strokeStyle = INK; c.lineWidth = 1.6;
+    c.fillStyle = skin.spike; c.strokeStyle = INK; c.lineWidth = 1.6;
     for (let d = 14; d < L - 4; d += 18) {
       const px = x1 + (dx / L) * d, py = o.y1 + (dy / L) * d;
       const side = Math.floor(d / 18) % 2 ? 1 : -1;
       c.beginPath(); c.moveTo(px, py - 3); c.lineTo(px + side * 13, py); c.lineTo(px, py + 3); c.closePath(); c.fill(); c.stroke();
     }
-    c.strokeStyle = '#ffe066'; c.lineWidth = 2; c.beginPath();
+    c.strokeStyle = skin.zap; c.lineWidth = 2; c.beginPath();
     const ph = reduce ? 0 : Math.floor(t * 12) % 3;
     for (let d = 0; d <= L; d += 9) { const j = ((d / 9 + ph) % 2 ? 1 : -1) * 4; c.lineTo(x1 + (dx / L) * d - (dy / L) * j, o.y1 + (dy / L) * d + (dx / L) * j); }
     c.stroke();
@@ -188,6 +195,7 @@ export function render(c: CanvasRenderingContext2D, g: Game, lo: Loadout, v: Vie
     c.beginPath(); c.ellipse(x, g.coinY[i], 3.4 * squash, 4.6, 0, 0, 6.3); c.strokeStyle = '#c98a00'; c.lineWidth = 1.5; c.stroke(); c.strokeStyle = INK; c.lineWidth = 2;
   }
   for (let i = 0; i < POOL.bonus; i++) if (g.bonOn[i]) bonusIcon(c, g.bonK[i], g.bonX[i] - cam, g.bonY[i], time);
+  skin = SKIN[biomeOf(g.dist)];
   for (const o of g.obs) if (o.active && Math.max(o.x1, o.x2) - cam > -40 && Math.min(o.x1, o.x2) - cam < v.w + 40) drawObs(c, o, cam, time, v.reduce);
   for (const m of g.missiles) if (m.active) drawObs(c, m, cam, time, v.reduce);
   for (const m of g.meteors) if (m.active) drawObs(c, m, cam, time, v.reduce);

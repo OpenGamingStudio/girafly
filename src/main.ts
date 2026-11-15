@@ -8,6 +8,7 @@ import { DT, H, MAX_DPR } from './config';
 import { render } from './render';
 import { BONUSES, DANGERS, bonusInfo } from './info';
 import { ICONS } from './icons';
+import { BIOME_NAMES, biomeOf } from './scenery';
 import { boom, clearFx, coinBurst, dust, smoke, sparks, updateFx } from './fx';
 import { PY_MAX } from './geom';
 import { TUTO_KIND, applyRun, missionText } from './missions';
@@ -101,7 +102,7 @@ function startRun(): void {
   game.setView(viewW);
   nextMilestone = 100;
   held = false;
-  lastDist = -1; lastCoins = -1; lastRatio = [-1, -1, -1]; bannerT = 0; elBanner.hidden = true;
+  lastDist = -1; lastCoins = -1; lastRatio = [-1, -1, -1]; bannerT = 0; curBiome = 0; elBanner.hidden = true;
   show('ready');
   paintHud();
   say('Maintiens l’écran pour décoller.');
@@ -197,6 +198,7 @@ function paintBonus(): void {
 }
 
 let bannerT = 0;
+let curBiome = 0;
 function announceText(name: string, fx: string): void {
   $('bn-icon').textContent = '';
   $('bn-name').textContent = name;
@@ -266,6 +268,8 @@ function frame(now: number): void {
     }
     happy = Math.max(0, happy - dt);
     if (game.dist >= nextMilestone) { say(`${nextMilestone} mètres`); nextMilestone += 100; }
+    const bi = biomeOf(game.dist);
+    if (bi !== curBiome) { if (game.dist > 0) { sound.biome(bi); announceText(BIOME_NAMES[bi], 'Nouveau décor, nouveaux obstacles'); say(`Biome : ${BIOME_NAMES[bi]}.`); } curBiome = bi; }
     if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) elBanner.hidden = true; }
     paintHud();
     if (game.mode === 'over') endRun();
