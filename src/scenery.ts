@@ -19,7 +19,13 @@ export const PALS: Pal[] = [
   { sky: '#2a2d7a', sun: '#ffe066', far: '#4a4fb0', mid: '#363b94', near: '#262a6b', ground: '#8f7bd6', ground2: '#6f5cb0', ceil: '#262a6b', cloud: '#a9acf0', accent: '#5af0d0' },
 ];
 
-export const biomeOf = (dist: number): number => Math.floor(dist / 500) % PALS.length;
+/** Longueur d'un biome en mètres (≈ 40 à 60 s de jeu selon la vitesse) et durée du fondu enchaîné. */
+export const BIOME_LEN = 350;
+export const BIOME_FADE = 18;
+export const BIOME_NAMES = ['Savane', 'Ville au crépuscule', 'Espace'];
+export const biomeOf = (dist: number): number => Math.floor(dist / BIOME_LEN) % PALS.length;
+/** 0 → 1 pendant les premiers mètres d'un biome (fondu depuis le précédent) ; 1 ensuite et au tout début de partie. */
+export const biomeBlend = (dist: number): number => (dist < BIOME_LEN ? 1 : Math.min(1, (dist % BIOME_LEN) / BIOME_FADE));
 
 const mod = (a: number, b: number) => ((a % b) + b) % b;
 /** Hasard stable par indice (0 à 1) : les motifs se répètent à l'identique sans état. */
@@ -118,11 +124,24 @@ function espace(c: Ctx, p: Pal, g: Game, s: Scene, cam: number, t: number): void
 
 const LAYERS = [savane, ville, espace];
 
-export function drawBackground(c: Ctx, g: Game, s: Scene, t: number): void {
-  const b = biomeOf(g.dist), p = PALS[b];
+function layers(c: Ctx, b: number, g: Game, s: Scene, t: number): void {
+  const p = PALS[b];
   const cam = g.camX * (s.reduce ? 0.35 : 1);
   c.fillStyle = p.sky; c.fillRect(0, 0, s.w, H);
   LAYERS[b](c, p, g, s, cam, t);
+}
+
+export function drawBackground(c: Ctx, g: Game, s: Scene, t: number): void {
+  const b = biomeOf(g.dist);
+  const k = biomeBlend(g.dist);
+  const p = k < 0.5 ? PALS[(b + PALS.length - 1) % PALS.length] : PALS[b]; // sol et plafond changent à mi-fondu
+  if (k < 1) {
+    // fondu : le biome précédent reste dessous, le nouveau apparaît par-dessus
+    layers(c, (b + PALS.length - 1) % PALS.length, g, s, t);
+    c.globalAlpha = s.reduce ? (k < 0.5 ? 0 : 1) : k;
+  }
+  layers(c, b, g, s, t);
+  c.globalAlpha = 1;
   // sol et plafond
   c.fillStyle = p.ground; c.fillRect(0, FLOOR, s.w, H - FLOOR);
   c.fillStyle = p.ground2; c.fillRect(0, FLOOR, s.w, 5);

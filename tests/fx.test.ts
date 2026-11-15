@@ -47,3 +47,14 @@ describe('décors', () => {
     expect(PALS).toHaveLength(3);
   });
 });
+
+import { BIOME_LEN, biomeBlend, biomeOf } from '../src/scenery';
+describe('biomes enchaînés', () => {
+  it('changent tous les BIOME_LEN mètres, en boucle, avec un fondu au début de chaque biome', () => {
+    expect([0, BIOME_LEN - 1, BIOME_LEN, 2 * BIOME_LEN, 3 * BIOME_LEN].map(biomeOf)).toEqual([0, 0, 1, 2, 0]);
+    expect(biomeBlend(0)).toBe(1);
+    expect(biomeBlend(BIOME_LEN)).toBe(0);
+    expect(biomeBlend(BIOME_LEN + 9)).toBeCloseTo(0.5);
+    expect(biomeBlend(BIOME_LEN + 40)).toBe(1);
+  });
+});

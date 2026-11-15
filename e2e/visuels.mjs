@@ -20,7 +20,7 @@ await wait(200);
 const set = (f) => p.evaluate(`(${f})(window.__gf.game())`);
 const shot = (n) => p.screenshot({ path: join(out, `${n}.png`) });
 await set((g) => { g.invuln = 999; g.t = 30; g.y = 180; g.vy = 0; g.beamKind = 0; });
-for (const [d, n] of [[0, 'savane'], [600, 'ville'], [1100, 'espace']]) {
+for (const [d, n] of [[0, 'savane'], [360, 'ville'], [370, 'fondu-ville'], [720, 'espace']]) {
   await set(`(g) => { g.x = ${d * 40 + 5}; g.invuln = 999; }`);
   await wait(900); await shot(`biome-${n}`);
 }

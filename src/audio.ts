@@ -44,6 +44,8 @@ export class Sound {
   warn(): void { this.tone(660, 0.14, 'square', 0.22); this.tone(660, 0.14, 'square', 0.22, undefined, 0.22); this.tone(660, 0.14, 'square', 0.22, undefined, 0.44); }
   beam(): void { this.tone(220, 0.5, 'sawtooth', 0.3, 90); }
   event(): void { [392, 330, 392, 330].forEach((f, i) => this.tone(f, 0.16, 'square', 0.22, undefined, i * 0.18)); }
+  /** Jingle de changement de biome : une gamme propre à chacun (savane, ville, espace). */
+  biome(i: number): void { [[392, 523, 659], [330, 392, 494], [294, 440, 587]][i % 3].forEach((f, k) => this.tone(f, 0.22, i === 2 ? 'sine' : 'triangle', 0.25, undefined, k * 0.14)); }
   shieldBreak(): void { this.tone(300, 0.25, 'sawtooth', 0.3, 80); }
   dead(): void { this.tone(400, 0.6, 'sawtooth', 0.35, 60); }
   ui(): void { this.tone(500, 0.06, 'triangle', 0.2); }
