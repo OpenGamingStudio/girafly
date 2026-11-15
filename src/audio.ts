@@ -42,6 +42,8 @@ export class Sound {
   bonus(): void { [523, 659, 784].forEach((f, i) => this.tone(f, 0.12, 'triangle', 0.3, undefined, i * 0.07)); }
   graze(): void { this.tone(1200, 0.12, 'sawtooth', 0.12, 1800); }
   warn(): void { this.tone(660, 0.14, 'square', 0.22); this.tone(660, 0.14, 'square', 0.22, undefined, 0.22); this.tone(660, 0.14, 'square', 0.22, undefined, 0.44); }
+  beam(): void { this.tone(220, 0.5, 'sawtooth', 0.3, 90); }
+  event(): void { [392, 330, 392, 330].forEach((f, i) => this.tone(f, 0.16, 'square', 0.22, undefined, i * 0.18)); }
   shieldBreak(): void { this.tone(300, 0.25, 'sawtooth', 0.3, 80); }
   dead(): void { this.tone(400, 0.6, 'sawtooth', 0.35, 60); }
   ui(): void { this.tone(500, 0.06, 'triangle', 0.2); }
