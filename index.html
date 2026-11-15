@@ -127,16 +127,20 @@
 
   <!-- Options -->
   <section id="s-options" hidden class="screen edge-pad" aria-labelledby="t-options">
-    <div class="plaque m-auto flex w-full max-w-md flex-col gap-3">
-      <h2 id="t-options" class="text-2xl font-bold">Options</h2>
-      <button id="o-sound" type="button" role="switch" aria-checked="true" class="btn justify-between"><span>Son</span><span class="sw" aria-hidden="true"></span></button>
-      <button id="o-full" type="button" role="switch" aria-checked="false" class="btn justify-between"><span>Plein écran</span><span class="sw" aria-hidden="true"></span></button>
+    <div class="plaque m-auto flex w-full max-w-xl flex-col gap-2">
+      <div class="flex items-center gap-2">
+        <h2 id="t-options" class="mr-auto text-2xl font-bold">Options</h2>
+        <button id="b-options-close" type="button" class="btn">Retour</button>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <button id="o-sound" type="button" role="switch" aria-checked="true" class="btn justify-between"><span>Son</span><span class="sw" aria-hidden="true"></span></button>
+        <button id="o-motion" type="button" role="switch" aria-checked="false" class="btn justify-between"><span>Mouvement réduit</span><span class="sw" aria-hidden="true"></span></button>
+        <button id="o-full" type="button" role="switch" aria-checked="false" class="btn justify-between"><span>Plein écran</span><span class="sw" aria-hidden="true"></span></button>
+        <label class="flex items-center justify-between gap-2 text-base font-bold">Volume
+          <input id="o-volume" type="range" min="0" max="100" step="5" class="h-11 w-24 accent-tomato sm:w-28">
+        </label>
+      </div>
       <p id="o-full-note" class="text-sm" hidden></p>
-      <button id="o-motion" type="button" role="switch" aria-checked="false" class="btn justify-between"><span>Mouvement réduit</span><span class="sw" aria-hidden="true"></span></button>
-      <label class="flex items-center justify-between gap-3 text-base font-bold">Volume
-        <input id="o-volume" type="range" min="0" max="100" step="5" class="h-11 w-44 accent-tomato">
-      </label>
-      <button id="b-options-close" type="button" class="btn">Retour</button>
     </div>
   </section>
 
