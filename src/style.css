@@ -12,7 +12,7 @@
 /* Identité Girafly : savane en aplats vifs, contour encre, ombre dure. Aucun dégradé. */
 @theme {
   --color-*: initial;
-  --color-ink: #1f1a2e;
+  --color-ink: #16110F;
   --color-cream: #fff6e0;
   --color-sand: #f2d9a0;
   --color-sky: #7fd4ff;
@@ -22,7 +22,7 @@
   --color-mint: #2fa35b;
   --color-white: #ffffff;
   --font-sans: "Fredoka", ui-rounded, sans-serif;
-  --shadow-hard: 4px 4px 0 #1f1a2e;
+  --shadow-hard: 4px 4px 0 #16110F;
 }
 
 html {
@@ -34,7 +34,7 @@ body {
   overflow: hidden;
   overscroll-behavior: none;
   background: #7fd4ff;
-  color: #1f1a2e;
+  color: #16110F;
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
@@ -54,9 +54,9 @@ body {
 
 .plaque {
   background: #fff6e0;
-  border: 3px solid #1f1a2e;
+  border: 3px solid #16110F;
   border-radius: 1.25rem;
-  box-shadow: 4px 4px 0 #1f1a2e;
+  box-shadow: 4px 4px 0 #16110F;
   padding: 0.9rem 1rem;
   max-height: 100%;
   overflow-y: auto;
@@ -69,11 +69,11 @@ body {
   padding: 0 0.9rem;
   font-weight: 700;
   background: #fff6e0;
-  border: 3px solid #1f1a2e;
+  border: 3px solid #16110F;
   border-radius: 999px;
-  box-shadow: 3px 3px 0 #1f1a2e;
+  box-shadow: 3px 3px 0 #16110F;
 }
-.stat { background: #f2d9a0; border: 3px solid #1f1a2e; border-radius: 0.9rem; padding: 0.4rem; }
+.stat { background: #f2d9a0; border: 3px solid #16110F; border-radius: 0.9rem; padding: 0.4rem; }
 .btn, .btn-icon {
   display: inline-flex;
   align-items: center;
@@ -84,30 +84,30 @@ body {
   padding: 0.3rem 1rem;
   font: inherit;
   font-weight: 700;
-  color: #1f1a2e;
+  color: #16110F;
   background: #ffffff;
-  border: 3px solid #1f1a2e;
+  border: 3px solid #16110F;
   border-radius: 0.9rem;
-  box-shadow: 3px 3px 0 #1f1a2e;
+  box-shadow: 3px 3px 0 #16110F;
   cursor: pointer;
   transition: transform 80ms, box-shadow 80ms;
 }
 .btn-icon { padding: 0; border-radius: 999px; background: #fff6e0; width: 44px; }
-.btn:active, .btn-icon:active { transform: translate(3px, 3px); box-shadow: 0 0 0 #1f1a2e; }
+.btn:active, .btn-icon:active { transform: translate(3px, 3px); box-shadow: 0 0 0 #16110F; }
 .btn-main { background: #ffc43d; font-size: 1.3rem; min-height: 52px; }
 .btn:disabled { background: #d9d2c0; color: #4a4458; cursor: not-allowed; }
 .tab[aria-selected="true"] { background: #ffc43d; }
-:focus-visible { outline: 4px solid #1f1a2e; outline-offset: 2px; box-shadow: 0 0 0 7px #ffffff; }
-.sw { width: 3rem; height: 1.7rem; border: 3px solid #1f1a2e; border-radius: 999px; background: #d9d2c0; position: relative; flex: none; }
-.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 1.1rem; height: 1.1rem; border-radius: 999px; background: #1f1a2e; transition: transform 120ms; }
+:focus-visible { outline: 4px solid #16110F; outline-offset: 2px; box-shadow: 0 0 0 7px #ffffff; }
+.sw { width: 3rem; height: 1.7rem; border: 3px solid #16110F; border-radius: 999px; background: #d9d2c0; position: relative; flex: none; }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 1.1rem; height: 1.1rem; border-radius: 999px; background: #16110F; transition: transform 120ms; }
 [aria-checked="true"] > .sw { background: #2fa35b; }
 [aria-checked="true"] > .sw::after { transform: translateX(1.3rem); }
-.preview { width: 100%; max-width: 12rem; aspect-ratio: 1; background: #7fd4ff; border: 3px solid #1f1a2e; border-radius: 1rem; }
-.item { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; min-height: 44px; padding: 4px; font: inherit; font-size: 0.78rem; font-weight: 700; line-height: 1.1; background: #fff; color: #1f1a2e; border: 3px solid #1f1a2e; border-radius: 0.8rem; cursor: pointer; }
+.preview { width: 100%; max-width: 12rem; aspect-ratio: 1; background: #7fd4ff; border: 3px solid #16110F; border-radius: 1rem; }
+.item { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; min-height: 44px; padding: 4px; font: inherit; font-size: 0.78rem; font-weight: 700; line-height: 1.1; background: #fff; color: #16110F; border: 3px solid #16110F; border-radius: 0.8rem; cursor: pointer; }
 .item canvas { width: 100%; max-width: 56px; aspect-ratio: 1; }
 .item[aria-pressed="true"] { background: #ffc43d; }
 .item.equipped { box-shadow: inset 0 0 0 3px #2fa35b; }
-.pip { display: inline-block; width: 14px; height: 14px; border: 2px solid #1f1a2e; border-radius: 4px; background: #fff; }
+.pip { display: inline-block; width: 14px; height: 14px; border: 2px solid #16110F; border-radius: 4px; background: #fff; }
 .pip.on { background: #2fa35b; }
 .rotor { animation: rot 2.4s ease-in-out infinite; transform-origin: 50% 50%; }
 @keyframes rot { 0%, 25% { transform: rotate(0deg); } 65%, 100% { transform: rotate(-90deg); } }

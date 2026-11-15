@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ITEMS, UPGRADES, itemsOf } from '../src/catalog';
-import { MAX_LEVEL, applyRun, levelOf, pickMission, xpFor } from '../src/missions';
+import { TUTO_KIND, applyRun, compositionFor, fillMissions, pickMission } from '../src/missions';
 import { SAVE_KEY, SAVE_VERSION, defaultSave, load, migrate, persist } from '../src/save';
 
 class Mem { m = new Map<string, string>(); getItem(k: string) { return this.m.get(k) ?? null; } setItem(k: string, v: string) { this.m.set(k, v); } }
@@ -28,7 +28,7 @@ describe('sauvegarde', () => {
     expect(s.owned).not.toContain('nimporte');
     expect(s.equipped.coat).toBe('coat-zebra');
     expect(s.equipped.hat).toBe('head-none'); // non possédé
-    expect(s.missions).toHaveLength(3);
+    expect(s.missions).toHaveLength(1); // pas encore jouée : mission tuto
   });
   it('fonctionne sans stockage (navigation privée)', () => {
     expect(load(null).coins).toBe(0);
@@ -62,21 +62,42 @@ describe('catalogue', () => {
   });
 });
 
-describe('missions et niveaux', () => {
-  it('3 missions de types différents', () => {
-    expect(new Set(defaultSave().missions.map((m) => m.kind)).size).toBe(3);
+describe('missions et compteur', () => {
+  it('1re partie : une seule mission, le tuto (+50, compteur = 1), validé quel que soit le score', () => {
+    const s = defaultSave();
+    expect(s.missions.map((m) => m.kind)).toEqual([TUTO_KIND]);
+    const r = applyRun(s.missions, { dist: 0, coins: 0, grazes: 0, bonuses: 0, balloons: 0 }, 5, 0);
+    expect(r.done).toHaveLength(1);
+    expect(r.done[0].reward).toBe(50);
+    expect(r.missions).toHaveLength(3);
+    expect(new Set(r.missions.map((m) => m.kind)).size).toBe(3);
+    expect(r.missions.every((m) => m.kind !== TUTO_KIND && m.tier === 0)).toBe(true);
+  });
+  it('paliers 3 et 8 : composition et récompenses 40 / 80 / 150', () => {
+    expect(compositionFor(1)).toEqual([0, 0, 0]);
+    expect(compositionFor(3)).toEqual([0, 0, 1]);
+    expect(compositionFor(7)).toEqual([0, 0, 1]);
+    expect(compositionFor(8)).toEqual([0, 1, 2]);
+    const tiers = (n: number) => fillMissions([], 11, n).map((m) => m.tier).sort();
+    expect(tiers(2)).toEqual([0, 0, 0]);
+    expect(tiers(5)).toEqual([0, 0, 1]);
+    expect(tiers(9)).toEqual([0, 1, 2]);
+    expect(fillMissions([], 3, 9).map((m) => m.reward).sort((a, b) => a - b)).toEqual([40, 80, 150]);
+    expect(new Set(fillMissions([], 3, 9).map((m) => m.kind)).size).toBe(3);
+  });
+  it('sauvegarde : pas de xp ni de niveau, tuto marqué fait après une partie', () => {
+    const s = migrate({ xp: 999, games: 2, missionsDone: 4 });
+    expect('xp' in s).toBe(false);
+    expect(s.tutoDone).toBe(true);
+    expect(s.missions).toHaveLength(3);
+    expect(migrate({}).missions.map((m) => m.kind)).toEqual([TUTO_KIND]);
   });
   it('une mission accomplie est remplacée et rapporte sa récompense', () => {
-    const base = [pickMission(1, []), pickMission(2, []), pickMission(3, [])];
+    const base = fillMissions([], 1, 1);
     const r = applyRun(base, { dist: 99999, coins: 99999, grazes: 99, bonuses: 99, balloons: 9 }, 50);
     expect(r.done.length).toBe(3);
     expect(r.missions).toHaveLength(3);
     expect(r.missions.every((m) => m.progress === 0)).toBe(true);
-  });
-  it('niveaux 1 à 20', () => {
-    expect(levelOf(0)).toBe(1);
-    expect(levelOf(xpFor(5))).toBe(5);
-    expect(levelOf(1e9)).toBe(MAX_LEVEL);
   });
 });
 

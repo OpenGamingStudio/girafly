@@ -1,5 +1,5 @@
 import { DEFAULT_LOADOUT, SLOTS, freeIds, Slot, UpKey, UPGRADES, itemById } from './catalog';
-import { Mission, TEMPLATES, pickMission } from './missions';
+import { Mission, fillMissions, isMissionKind, tutoMission } from './missions';
 
 export const SAVE_KEY = 'girafly-save';
 export const SAVE_VERSION = 1;
@@ -13,8 +13,8 @@ export interface Save {
   bestDist: number;
   totalDist: number;
   grazes: number;
-  xp: number;
   missionsDone: number;
+  tutoDone: boolean;
   missionSeed: number;
   missions: Mission[];
   owned: string[];
@@ -28,14 +28,13 @@ const num = (v: unknown, d = 0, max = 1e9): number => (typeof v === 'number' && 
 
 export function defaultSave(): Save {
   const s: Save = {
-    v: SAVE_VERSION, coins: 0, totalCoins: 0, games: 0, bestDist: 0, totalDist: 0, grazes: 0, xp: 0, missionsDone: 0,
-    missionSeed: 1, missions: [], owned: freeIds(0),
+    v: SAVE_VERSION, coins: 0, totalCoins: 0, games: 0, bestDist: 0, totalDist: 0, grazes: 0, missionsDone: 0, tutoDone: false,
+    missionSeed: 1, missions: [tutoMission()], owned: freeIds(0),
     equipped: { ...DEFAULT_LOADOUT },
     upgrades: { jetpack: 0, magnet: 0, shield: 0, balloon: 0, mult: 0 },
     options: { reduceMotion: null, sound: true, volume: 0.8 },
     seenHelp: false,
   };
-  for (let i = 0; i < 3; i++) s.missions.push(pickMission(s.missionSeed++, s.missions));
   return s;
 }
 
@@ -47,7 +46,7 @@ export function migrate(raw: unknown): Save {
   const s = d;
   s.coins = num(r.coins); s.totalCoins = num(r.totalCoins, s.coins); s.games = num(r.games);
   s.bestDist = num(r.bestDist); s.totalDist = num(r.totalDist); s.grazes = num(r.grazes);
-  s.xp = num(r.xp); s.missionsDone = num(r.missionsDone); s.missionSeed = num(r.missionSeed, 1, 1e6);
+  s.missionsDone = num(r.missionsDone); s.tutoDone = r.tutoDone === true || s.games > 0; s.missionSeed = num(r.missionSeed, 1, 1e6);
   s.seenHelp = r.seenHelp === true;
   if (Array.isArray(r.owned)) {
     const ids = r.owned.filter((x): x is string => typeof x === 'string' && !!itemById(x));
@@ -79,17 +78,17 @@ export function migrate(raw: unknown): Save {
     for (const m of r.missions) {
       if (!m || typeof m !== 'object') continue;
       const x = m as Record<string, unknown>;
-      if (typeof x.kind !== 'string' || !TEMPLATES.some((t) => t.kind === x.kind)) continue;
+      if (typeof x.kind !== 'string' || !isMissionKind(x.kind)) continue;
       const target = num(x.target);
       if (target <= 0 || ms.some((q) => q.kind === x.kind)) continue;
-      ms.push({ kind: x.kind, target, progress: Math.min(num(x.progress), target - 1), reward: num(x.reward, 40) });
+      ms.push({ kind: x.kind, target, progress: Math.min(num(x.progress), target - 1), reward: num(x.reward, 40), tier: Math.min(num(x.tier), 2) });
       if (ms.length === 3) break;
     }
-    if (ms.length) {
-      s.missions = ms;
-      while (s.missions.length < 3) s.missions.push(pickMission(s.missionSeed++, s.missions));
-    }
+    if (ms.length) s.missions = ms;
   }
+  // tuto tant que la 1re partie n'est pas jouée ; ensuite 3 missions selon le palier du compteur
+  if (!s.tutoDone) s.missions = [tutoMission()];
+  else s.missions = fillMissions(s.missions, s.missionSeed, s.missionsDone);
   s.v = SAVE_VERSION;
   return s;
 }

@@ -6,7 +6,7 @@ import {
 } from './catalog';
 import { DT, H, MAX_DPR } from './config';
 import { render } from './render';
-import { MAX_LEVEL, applyRun, levelOf, missionText, runXp, xpFor } from './missions';
+import { TUTO_KIND, applyRun, missionText } from './missions';
 import { Save, load, localStore, persist } from './save';
 import {
   EV_BALLOON_END, EV_BONUS, EV_COIN, EV_DEAD, EV_GRAZE, EV_HIT, EV_WARN, Game, perksFor,
@@ -112,18 +112,18 @@ function resume(): void {
 function endRun(): void {
   const st = { dist: game.dist, coins: game.coins, grazes: game.grazes, bonuses: game.bonuses, balloons: game.balloons };
   const newRecord = st.dist > save.bestDist;
-  const r = applyRun(save.missions, st, save.missionSeed + save.games * 3);
+  const r = applyRun(save.missions, st, save.missionSeed + save.games * 3, save.missionsDone);
   const bonus = r.done.reduce((a, m) => a + m.reward, 0);
   save.missions = r.missions;
   save.missionSeed += 3;
   save.missionsDone += r.done.length;
+  if (r.done.some((m) => m.kind === TUTO_KIND)) save.tutoDone = true;
   for (const id of freeIds(save.missionsDone)) if (!save.owned.includes(id)) save.owned.push(id);
   save.coins += st.coins + bonus;
   save.totalCoins += st.coins + bonus;
   save.games++;
   save.totalDist += st.dist;
   save.grazes += st.grazes;
-  save.xp += runXp(st, r.done.length);
   if (newRecord) save.bestDist = st.dist;
   flush();
   $('o-dist').textContent = String(st.dist);
@@ -273,7 +273,9 @@ on('b-options-close', () => openTitle('b-options'));
 on('b-help', () => show('help', 'b-help-close'));
 on('b-help-close', () => openTitle('b-help'));
 
+const countText = (): string => `${save.missionsDone} mission${save.missionsDone > 1 ? 's' : ''}`;
 function openTitle(focus = 'b-play'): void {
+  $('t-count').textContent = countText();
   $('t-best').textContent = String(save.bestDist);
   $('t-coins').textContent = String(save.coins);
   show('title', focus);
@@ -303,9 +305,7 @@ $('o-volume').addEventListener('input', (e) => {
 
 // ---------- Missions ----------
 function openMissions(): void {
-  const lv = levelOf(save.xp);
-  $('m-level').textContent = String(lv);
-  $('m-xp').textContent = lv >= MAX_LEVEL ? 'niveau maximum' : `${save.xp - xpFor(lv)} / ${xpFor(lv + 1) - xpFor(lv)} pour le niveau suivant`;
+  $('m-count').textContent = countText();
   const ul = $('m-list');
   ul.textContent = '';
   for (const m of save.missions) {
@@ -499,7 +499,7 @@ function drawPreview(): void {
   c.scale(3.2, 3.2);
   const bob = reduced() ? 0 : Math.sin(tSec * 3) * 2;
   c.translate(0, bob);
-  drawGigi(c, previewLoadout(), { vy: reduced() ? 0 : Math.cos(tSec * 3) * 40, t: tSec, speed: 260, thrusting: true });
+  drawGigi(c, previewLoadout(), { vy: reduced() ? 0 : Math.cos(tSec * 3) * 40, t: tSec, speed: 260, thrusting: true, calm: reduced() });
   c.restore();
 }
 

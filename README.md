@@ -9,7 +9,7 @@ Jeu en ligne : https://girafly.opengamingstudio.com — un jeu [OpenGamingStudio
 - **Maintenir** l'écran (ou la souris, ou Espace / flèche haut) : le jetpack te fait monter. **Relâcher** : tu descends.
 - Échap ou P : pause. La pause est automatique quand l'onglet perd le focus ou quand le téléphone passe en portrait (écran « Tourne ton téléphone »).
 - Ramasse les pièces et les bonus : bouclier (1 coup), aimant, Ballon-zèbre (vol stable, 1 coup).
-- Boutique : 5 améliorations à 5 niveaux (jetpack, aimant, bouclier, Ballon-zèbre, multiplicateur de pièces) et 20 cosmétiques (5 pelages, 5 têtes, 4 jetpacks, 3 traînées, 3 écharpes ; certains offerts par le compteur de missions). 3 missions actives, niveau de joueur de 1 à 20 (sans effet sur la boutique).
+- Boutique : 5 améliorations à 5 niveaux (jetpack, aimant, bouclier, Ballon-zèbre, multiplicateur de pièces) et 20 cosmétiques (5 pelages, 5 têtes, 4 jetpacks, 3 traînées, 3 écharpes ; certains offerts par le compteur de missions). Une mission tuto (validée à la fin de la 1re partie, +50 pièces), puis 3 missions actives dont la difficulté suit le compteur de missions accomplies (paliers à 3 et 8) ; ce compteur, affiché sur l’écran d’accueil, offre 8 cosmétiques. Pas de niveau ni d’XP.
 - Aucune publicité, aucun achat réel, aucun compte : tout est sauvegardé dans le navigateur (`localStorage`, versionné).
 
 ## Développer

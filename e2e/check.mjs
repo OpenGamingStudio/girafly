@@ -6,7 +6,7 @@ const pp = process.env.PUPPETEER ?? 'puppeteer-core';
 const { default: puppeteer } = await import(pp);
 const [url, out] = process.argv.slice(2);
 mkdirSync(out, { recursive: true });
-const b = await puppeteer.launch({ executablePath: process.env.CHROME ?? '/usr/bin/google-chrome', args: ['--no-sandbox'], headless: 'new' });
+const b = process.env.BROWSER_URL ? await puppeteer.connect({ browserURL: process.env.BROWSER_URL }) : await puppeteer.launch({ executablePath: process.env.CHROME ?? '/usr/bin/google-chrome', args: ['--no-sandbox'], headless: 'new' });
 const errs = [];
 const bad = [];
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));

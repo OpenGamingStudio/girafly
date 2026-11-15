@@ -65,6 +65,7 @@ function background(c: CanvasRenderingContext2D, g: Game, v: View): void {
   }
 }
 
+const DASH = [5, 6], DASH2 = [8, 5], NODASH: number[] = [];
 function drawObs(c: CanvasRenderingContext2D, o: Obs, cam: number, t: number, reduce: boolean): void {
   const x1 = o.x1 - cam, x2 = o.x2 - cam;
   c.lineCap = 'round';
@@ -72,8 +73,9 @@ function drawObs(c: CanvasRenderingContext2D, o: Obs, cam: number, t: number, re
     // barre laser : contour encre, cœur rouge pointillé, deux émetteurs en losange
     c.strokeStyle = INK; c.lineWidth = o.r * 2 + 5; c.beginPath(); c.moveTo(x1, o.y1); c.lineTo(x2, o.y2); c.stroke();
     c.strokeStyle = '#ff3d5a'; c.lineWidth = o.r * 2; c.stroke();
-    c.strokeStyle = '#ffffff'; c.lineWidth = 1.4; c.setLineDash([5, 6]); c.lineDashOffset = reduce ? 0 : -t * 40; c.stroke(); c.setLineDash([]);
-    for (const [ex, ey] of [[x1, o.y1], [x2, o.y2]]) {
+    c.strokeStyle = '#ffffff'; c.lineWidth = 1.4; c.setLineDash(DASH); c.lineDashOffset = reduce ? 0 : -t * 40; c.stroke(); c.setLineDash(NODASH);
+    for (let e = 0; e < 2; e++) {
+      const ex = e ? x2 : x1, ey = e ? o.y2 : o.y1;
       c.beginPath(); c.moveTo(ex, ey - 9); c.lineTo(ex + 8, ey); c.lineTo(ex, ey + 9); c.lineTo(ex - 8, ey); c.closePath();
       c.fillStyle = '#ffd23f'; c.fill(); c.lineWidth = 2; c.strokeStyle = INK; c.stroke();
     }
@@ -100,7 +102,7 @@ function drawObs(c: CanvasRenderingContext2D, o: Obs, cam: number, t: number, re
     c.beginPath(); c.moveTo(x2 - 4, ny); c.lineTo(x2 + 8, ny - 8); c.lineTo(x1 + 4, ny - 8); c.lineTo(x1 + 4, ny + 8); c.lineTo(x2 + 8, ny + 8); c.closePath(); c.fillStyle = '#e8e4f0'; c.fill(); c.stroke();
     c.beginPath(); c.moveTo(x2 - 4, ny - 8); c.lineTo(x2 - 4, ny + 8); c.lineTo(x2 - 12, ny); c.closePath(); c.fillStyle = '#ff3d5a'; c.fill(); c.stroke();
     c.fillStyle = '#ff3d5a'; c.beginPath(); c.moveTo(x1 + 4, ny - 5); c.lineTo(x1 + 4 + 14 + Math.sin(t * 50) * 3, ny); c.lineTo(x1 + 4, ny + 5); c.closePath(); c.fill();
-    c.fillStyle = '#1f1a2e'; c.fillRect(x2 + 10, ny - 2, 6, 4);
+    c.fillStyle = '#16110F'; c.fillRect(x2 + 10, ny - 2, 6, 4);
   }
 }
 
@@ -115,17 +117,18 @@ function bonusIcon(c: CanvasRenderingContext2D, k: number, x: number, y: number,
     c.beginPath(); c.arc(x, y + 1, 6, Math.PI, 0); c.lineWidth = 5; c.strokeStyle = INK; c.stroke(); c.lineWidth = 3; c.strokeStyle = '#ff3d5a'; c.stroke();
     c.fillStyle = '#ffffff'; c.fillRect(x - 8.5, y + 1, 5, 5); c.fillRect(x + 3.5, y + 1, 5, 5); c.strokeStyle = INK; c.lineWidth = 1.5; c.strokeRect(x - 8.5, y + 1, 5, 5); c.strokeRect(x + 3.5, y + 1, 5, 5);
   } else if (k === B_BALLOON) {
-    c.beginPath(); c.ellipse(x, y - 1, 7, 8, 0, 0, 6.3); c.fillStyle = '#1f1a2e'; c.fill();
+    c.beginPath(); c.ellipse(x, y - 1, 7, 8, 0, 0, 6.3); c.fillStyle = '#16110F'; c.fill();
     c.fillStyle = '#ffffff'; c.fillRect(x - 6, y - 5, 12, 2.4); c.fillRect(x - 6, y, 12, 2.4);
   }
 }
 
+const BALLOON_STRIPES = [-80, 7, -72, 11, -62, 14, -52, 8];
 function drawBalloon(c: CanvasRenderingContext2D, t: number): void {
   c.lineWidth = 2.2; c.strokeStyle = INK;
   c.beginPath(); c.moveTo(-4, -6); c.lineTo(-2, -50); c.moveTo(14, -10); c.lineTo(2, -50); c.stroke();
   c.beginPath(); c.ellipse(-1, -66, 24, 26 + Math.sin(t * 3), 0, 0, 6.3); c.fillStyle = '#ffffff'; c.fill(); c.stroke();
   c.fillStyle = INK;
-  for (const [dy, w] of [[-80, 7], [-72, 11], [-62, 14], [-52, 8]]) { c.beginPath(); c.ellipse(-1, dy, w * 1.6, 3.6, 0, 0, 6.3); c.fill(); }
+  for (let i = 0; i < BALLOON_STRIPES.length; i += 2) { c.beginPath(); c.ellipse(-1, BALLOON_STRIPES[i], BALLOON_STRIPES[i + 1] * 1.6, 3.6, 0, 0, 6.3); c.fill(); }
 }
 
 export function render(c: CanvasRenderingContext2D, g: Game, lo: Loadout, v: View, time: number, trailId: string): void {
@@ -156,9 +159,9 @@ export function render(c: CanvasRenderingContext2D, g: Game, lo: Loadout, v: Vie
     c.save();
     c.translate(g.x - cam, g.y);
     if (g.balloonT > 0) drawBalloon(c, time);
-    drawGigi(c, lo, { vy: g.vy, t: time, speed: g.speed, thrusting: g.thrusting && g.mode === 'run', dead: g.mode !== 'run' });
+    drawGigi(c, lo, { vy: g.vy, t: time, speed: g.speed, thrusting: g.thrusting && g.mode === 'run', dead: g.mode !== 'run', calm: v.reduce });
     if (g.shield) {
-      c.beginPath(); c.arc(2, -8, 34, 0, 6.3); c.lineWidth = 3; c.strokeStyle = '#3b82f6'; c.setLineDash([8, 5]); c.stroke(); c.setLineDash([]);
+      c.beginPath(); c.arc(2, -8, 34, 0, 6.3); c.lineWidth = 3; c.strokeStyle = '#3b82f6'; c.setLineDash(DASH2); c.stroke(); c.setLineDash(NODASH);
     }
     c.restore();
   }
