@@ -71,6 +71,8 @@ export interface GenOpts {
   diff: number;
   /** Segment d'accueil : pas d'obstacle. */
   calm: boolean;
+  /** Rampe d'accueil : seulement quelques obstacles simples. */
+  ramp?: boolean;
   /** Pondération des bonus bouclier (amélioration de la boutique). */
   shieldChance: number;
 }
@@ -83,40 +85,134 @@ function addCoin(s: Seg, x: number, y: number): void {
   s.nCoins++;
 }
 
-function placeObs(s: Seg, r: Rng, diff: number): void {
+export type Pattern = 'scatter' | 'corridor' | 'zigzag' | 'gate';
+
+/** Le « director » : choisit un pattern selon la difficulté courante (0 → 1). */
+export function pickPattern(diff: number, r: Rng): Pattern {
+  const w: [Pattern, number][] = [['scatter', 3]];
+  if (diff >= 0.2) w.push(['corridor', 2]);
+  if (diff >= 0.35) w.push(['gate', 2]);
+  if (diff >= 0.5) w.push(['zigzag', 2]);
+  let tot = 0;
+  for (const e of w) tot += e[1];
+  let x = r.next() * tot;
+  for (const e of w) { x -= e[1]; if (x < 0) return e[0]; }
+  return 'scatter';
+}
+
+function slot(s: Seg): Obs | null {
+  if (s.nObs >= MAX_OBS) return null;
+  const o = s.obs[s.nObs++];
+  o.active = true; o.grazed = false; o.vx = 0; o.vy = 0; o.amp = 0; o.w = 0; o.ph = 0;
+  return o;
+}
+
+function acacia(s: Seg, x: number, top: boolean, tip: number, dx = 0): void {
+  const o = slot(s);
+  if (!o) return;
+  o.kind = K_ACACIA; o.r = 9;
+  o.x1 = x; o.y1 = top ? CEIL : FLOOR;
+  o.x2 = x + dx; o.y2 = tip;
+}
+
+function vbar(s: Seg, x: number, y1: number, y2: number): Obs | null {
+  const o = slot(s);
+  if (!o) return null;
+  o.kind = K_LASER; o.r = 4;
+  o.x1 = x; o.x2 = x; o.y1 = y1; o.y2 = y2; o.b1 = y1; o.b2 = y2;
+  return o;
+}
+
+/** Retire les obstacles ajoutés depuis `from` qui gênent la trajectoire garantie ; un pattern est tout ou rien. */
+function commit(s: Seg, from: number, all: boolean): void {
+  let ok = true;
+  for (let i = from; i < s.nObs; i++) if (!pathClear(s, s.obs[i])) ok = false;
+  if (all && !ok) { for (let i = from; i < s.nObs; i++) s.obs[i].active = false; s.nObs = from; return; }
+  let w = from;
+  for (let i = from; i < s.nObs; i++) {
+    if (pathClear(s, s.obs[i])) { if (w !== i) { const t = s.obs[w]; s.obs[w] = s.obs[i]; s.obs[i] = t; } w++; } else s.obs[i].active = false;
+  }
+  s.nObs = w;
+}
+
+function scatter(s: Seg, r: Rng, diff: number, ramp: boolean): void {
   const tries = 3 + Math.floor(diff * 6);
-  const want = 1 + Math.floor(diff * 4) + (r.chance(0.5) ? 1 : 0);
+  const want = ramp ? 1 : 2 + Math.floor(diff * 4) + (r.chance(0.5) ? 1 : 0);
   for (let i = 0; i < tries && s.nObs < Math.min(want, MAX_OBS); i++) {
-    const o = s.obs[s.nObs];
-    o.active = true;
-    o.grazed = false;
-    o.vx = 0;
+    const from = s.nObs;
     const cx = s.x0 + r.range(60, s.len - 40);
     if (r.chance(0.34)) {
       // branche d'acacia électrifiée, du plafond ou du sol
-      o.kind = K_ACACIA;
-      o.r = 9;
       const top = r.chance(0.5);
       const len = r.range(60, 170);
-      o.x1 = cx;
-      o.y1 = top ? CEIL : FLOOR;
-      o.x2 = cx + r.range(-24, 24);
-      o.y2 = top ? CEIL + len : FLOOR - len;
+      acacia(s, cx, top, top ? CEIL + len : FLOOR - len, r.range(-24, 24));
     } else {
       // barre laser fixe : horizontale, verticale ou diagonale
-      o.kind = K_LASER;
-      o.r = 4;
+      const o = slot(s);
+      if (!o) break;
+      o.kind = K_LASER; o.r = 4;
       const ang = [0, Math.PI / 2, Math.PI / 4, -Math.PI / 4][r.int(0, 3)];
       const half = r.range(26, 56);
       const cy = r.range(CEIL + 40, FLOOR - 40);
-      o.x1 = cx - Math.cos(ang) * half;
-      o.y1 = cy - Math.sin(ang) * half;
-      o.x2 = cx + Math.cos(ang) * half;
-      o.y2 = cy + Math.sin(ang) * half;
+      o.x1 = cx - Math.cos(ang) * half; o.y1 = cy - Math.sin(ang) * half;
+      o.x2 = cx + Math.cos(ang) * half; o.y2 = cy + Math.sin(ang) * half;
     }
-    if (pathClear(s, o)) s.nObs++;
-    else o.active = false;
+    commit(s, from, false);
   }
+}
+
+/** Couloir : une acacia au plafond et une au sol, l'ouverture se resserre avec la difficulté. */
+function corridor(s: Seg, r: Rng, diff: number): void {
+  const x = s.x0 + r.range(110, 230);
+  const half = 96 - diff * 26;
+  const c = pathY(s, x);
+  const from = s.nObs;
+  acacia(s, x, true, c - half - 9);
+  acacia(s, x + r.range(-12, 12), false, c + half + 9);
+  commit(s, from, true);
+}
+
+/** Zigzag : des acacias alternées, haut / bas, dont les pointes frôlent la trajectoire. */
+function zigzag(s: Seg, r: Rng, diff: number): void {
+  const n = 3 + (diff > 0.75 ? 1 : 0);
+  const gap = 78 - diff * 14;
+  const from = s.nObs;
+  let top = r.chance(0.5);
+  for (let k = 0; k < n; k++) {
+    const x = s.x0 + 70 + k * gap;
+    const c = pathY(s, x);
+    acacia(s, x, top, top ? c - 70 : c + 42);
+    top = !top;
+  }
+  commit(s, from, true);
+}
+
+/** Porte mobile : deux barres laser dont l'ouverture monte et descend ; la trajectoire reste dans l'ouverture. */
+function gate(s: Seg, r: Rng, diff: number): void {
+  const x = s.x0 + r.range(120, 230);
+  const half = 92;
+  const c = pathY(s, x);
+  const amp = 14 + 26 * diff;
+  const w = r.range(1.6, 2.6);
+  const ph = r.range(0, 6.28);
+  const from = s.nObs;
+  const t = vbar(s, x, CEIL - 30, c - half);
+  const b = vbar(s, x, c + half, FLOOR + 30);
+  for (const o of [t, b]) if (o) { o.amp = amp; o.w = w; o.ph = ph; }
+  // la trajectoire doit passer en toute position de la porte : on teste les deux extrêmes
+  for (const sgn of [-1, 1]) {
+    for (const o of [t, b]) if (o) { o.y1 = o.b1 + sgn * amp; o.y2 = o.b2 + sgn * amp; }
+    for (let i = from; i < s.nObs; i++) if (!pathClear(s, s.obs[i])) { for (let j = from; j < s.nObs; j++) s.obs[j].active = false; s.nObs = from; return; }
+  }
+  for (const o of [t, b]) if (o) { o.y1 = o.b1; o.y2 = o.b2; }
+}
+
+function placeObs(s: Seg, r: Rng, diff: number, ramp: boolean): void {
+  const p = ramp ? 'scatter' : pickPattern(diff, r);
+  if (p === 'corridor') corridor(s, r, diff);
+  else if (p === 'zigzag') zigzag(s, r, diff);
+  else if (p === 'gate') gate(s, r, diff);
+  scatter(s, r, p === 'scatter' ? diff : diff * 0.5, ramp);
 }
 
 function placeCoins(s: Seg, r: Rng): void {
@@ -175,7 +271,7 @@ export function generate(s: Seg, r: Rng, x0: number, yIn: number, o: GenOpts): v
   s.nObs = 0;
   s.nCoins = 0;
   s.nBonus = 0;
-  if (!o.calm) placeObs(s, r, o.diff);
+  if (!o.calm) placeObs(s, r, o.diff, !!o.ramp);
   placeCoins(s, r);
   if (!o.calm) {
     const x = s.x0 + r.range(120, 240);

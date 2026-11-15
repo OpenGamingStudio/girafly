@@ -1,8 +1,8 @@
-import { CEIL, FLOOR, H, POOL } from './config';
+import { CEIL, EVENT_DUR, FLOOR, H, POOL } from './config';
 import { INK, Loadout, drawGigi, drawTrailShape, star } from './art';
 import { B_BALLOON, B_MAGNET, B_SHIELD } from './gen';
-import { K_ACACIA, K_LASER, Obs } from './geom';
-import { Game } from './sim';
+import { K_ACACIA, K_BEAM, K_LASER, K_METEOR, Obs } from './geom';
+import { BEAM_WARN, E_DRONE, E_WIND, EVENT_NAMES, Game, METEOR_WARN, SWEEP_HALF } from './sim';
 
 export interface View {
   w: number; // largeur logique
@@ -79,6 +79,19 @@ function drawObs(c: CanvasRenderingContext2D, o: Obs, cam: number, t: number, re
       c.beginPath(); c.moveTo(ex, ey - 9); c.lineTo(ex + 8, ey); c.lineTo(ex, ey + 9); c.lineTo(ex - 8, ey); c.closePath();
       c.fillStyle = '#ffd23f'; c.fill(); c.lineWidth = 2; c.strokeStyle = INK; c.stroke();
     }
+  } else if (o.kind === K_BEAM) {
+    // tir de laser : bande pleine rouge, cœur blanc, contour encre (aplats)
+    const y = o.y1, h = o.r;
+    c.fillStyle = INK; c.fillRect(0, y - h - 3, 4000, h * 2 + 6);
+    c.fillStyle = '#ff3d5a'; c.fillRect(0, y - h, 4000, h * 2);
+    c.fillStyle = '#ffffff'; c.fillRect(0, y - h * 0.35, 4000, h * 0.7);
+  } else if (o.kind === K_METEOR) {
+    // météorite : rocher à facettes, flamme jaune derrière
+    const y = o.y1;
+    c.fillStyle = '#ffd23f'; c.beginPath(); c.moveTo(x1 - 8, y - 8); c.lineTo(x1, y - 46 - (reduce ? 0 : Math.sin(t * 40) * 4)); c.lineTo(x1 + 8, y - 8); c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(x1 - 16, y); c.lineTo(x1 - 8, y - 14); c.lineTo(x1 + 8, y - 15); c.lineTo(x1 + 17, y - 1); c.lineTo(x1 + 8, y + 13); c.lineTo(x1 - 9, y + 14); c.closePath();
+    c.fillStyle = '#8a6a4f'; c.fill(); c.lineWidth = 2.4; c.strokeStyle = INK; c.stroke();
+    c.fillStyle = '#5c4331'; c.beginPath(); c.arc(x1 - 3, y + 2, 4, 0, 6.3); c.fill(); c.beginPath(); c.arc(x1 + 7, y - 5, 2.6, 0, 6.3); c.fill();
   } else if (o.kind === K_ACACIA) {
     // branche d'acacia électrifiée : bois, épines en dents de scie, éclairs jaunes
     c.strokeStyle = INK; c.lineWidth = o.r * 2 + 4; c.beginPath(); c.moveTo(x1, o.y1); c.lineTo(x2, o.y2); c.stroke();
@@ -131,6 +144,76 @@ function drawBalloon(c: CanvasRenderingContext2D, t: number): void {
   for (let i = 0; i < BALLOON_STRIPES.length; i += 2) { c.beginPath(); c.ellipse(-1, BALLOON_STRIPES[i], BALLOON_STRIPES[i + 1] * 1.6, 3.6, 0, 0, 6.3); c.fill(); }
 }
 
+function drawDrone(c: CanvasRenderingContext2D, g: Game, v: View, t: number): void {
+  const x = v.w - 56, y = g.evtDroneY + (v.reduce ? 0 : Math.sin(t * 3) * 4);
+  c.lineWidth = 3; c.strokeStyle = INK;
+  c.fillStyle = '#e8e4f0'; c.beginPath(); c.roundRect(x - 34, y - 16, 68, 32, 12); c.fill(); c.stroke();
+  c.fillStyle = '#ff3d5a'; c.beginPath(); c.arc(x - 12, y, 7, 0, 6.3); c.fill(); c.stroke();
+  c.fillStyle = '#ffd23f'; c.fillRect(x + 6, y - 6, 20, 12); c.strokeRect(x + 6, y - 6, 20, 12);
+  c.fillStyle = INK; c.fillRect(x - 6, y - 26, 12, 5); c.fillRect(x - 24, y - 22, 48, 3);
+  const spin = v.reduce ? 0 : Math.floor(t * 30) % 2;
+  c.fillRect(x - 32 + spin * 6, y - 20, 14, 3); c.fillRect(x + 18 - spin * 6, y - 20, 14, 3);
+  c.fillStyle = '#ff3d5a'; c.fillRect(x - 3, y + 16, 6, 8);
+}
+
+function drawWind(c: CanvasRenderingContext2D, g: Game, v: View, t: number): void {
+  // traits de vent : leur sens suit la rafale (haut / bas)
+  const dir = Math.sign(g.windForce) || 1;
+  c.fillStyle = 'rgba(255,255,255,0.7)';
+  const n = v.reduce ? 4 : 14;
+  for (let i = 0; i < n; i++) {
+    const x = mod(i * 97 + (v.reduce ? 0 : t * 260), v.w + 80) - 40;
+    const y = mod(i * 53 - dir * (v.reduce ? 0 : t * 120), H - 60) + 30;
+    c.fillRect(x, y, 34, 3);
+  }
+}
+
+/** Avertissements avant tout danger : lignes et marques fixes sous mouvement réduit, clignotantes sinon. */
+function drawWarnings(c: CanvasRenderingContext2D, g: Game, v: View, t: number): void {
+  const on = v.reduce || Math.floor(t * 8) % 2 === 0;
+  if (g.beamKind !== 0 && g.beamT < BEAM_WARN) {
+    const k = g.beamT / BEAM_WARN;
+    c.fillStyle = '#ff3d5a';
+    if (g.beamKind === 1) {
+      if (on) { c.fillRect(0, g.beamY - 1.5, v.w, 3); }
+      c.fillRect(0, g.beamY - 14, 12 + k * 14, 28); c.fillRect(v.w - 12 - k * 14, g.beamY - 14, 12 + k * 14, 28);
+    } else {
+      // l'ouverture sûre : deux repères jaunes et des lignes rouges de part et d'autre
+      for (const dy of [-SWEEP_HALF - 5, SWEEP_HALF + 5]) { if (on) c.fillRect(0, g.beamY + dy - 1.5, v.w, 3); }
+      c.fillStyle = '#ffd23f';
+      c.fillRect(0, g.beamY - SWEEP_HALF, 12, SWEEP_HALF * 2); c.fillRect(v.w - 12, g.beamY - SWEEP_HALF, 12, SWEEP_HALF * 2);
+      c.strokeStyle = INK; c.lineWidth = 2; c.strokeRect(0, g.beamY - SWEEP_HALF, 12, SWEEP_HALF * 2); c.strokeRect(v.w - 12, g.beamY - SWEEP_HALF, 12, SWEEP_HALF * 2);
+    }
+  }
+  for (let i = 0; i < POOL.meteors; i++) {
+    if (g.metWarn[i] <= 0) continue;
+    const x = g.metX[i] - g.camX;
+    if (x < 0 || x > v.w) continue;
+    const k = 1 - g.metWarn[i] / METEOR_WARN;
+    c.fillStyle = '#ff3d5a'; c.fillRect(x - 2, CEIL + 22, 4, (FLOOR - CEIL) * k * 0.5);
+    if (on) {
+      c.beginPath(); c.moveTo(x, CEIL + 4); c.lineTo(x + 14, CEIL + 28); c.lineTo(x - 14, CEIL + 28); c.closePath();
+      c.fillStyle = '#ffd23f'; c.fill(); c.lineWidth = 2.4; c.strokeStyle = INK; c.stroke();
+    }
+  }
+}
+
+function drawBanner(c: CanvasRenderingContext2D, g: Game, v: View): void {
+  if (g.evtKind === 0) return;
+  const el = EVENT_DUR - g.evtT;
+  // bandeau d'annonce 3 s, puis une jauge fine du temps restant
+  if (el < 3) {
+    const w = Math.min(v.w - 2 * 24, 330), x = (v.w - w) / 2, y = 78;
+    c.fillStyle = INK; c.fillRect(x - 3, y - 3, w + 6, 40 + 6);
+    c.fillStyle = '#ffd23f'; c.fillRect(x, y, w, 40);
+    c.fillStyle = INK; c.font = '700 20px Fredoka, ui-rounded, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(EVENT_NAMES[g.evtKind], v.w / 2, y + 21);
+  }
+  const w = Math.min(v.w - 2 * 24, 200), x = (v.w - w) / 2;
+  c.fillStyle = INK; c.fillRect(x - 2, 64, w + 4, 10);
+  c.fillStyle = '#ffd23f'; c.fillRect(x, 66, w * Math.max(0, g.evtT / EVENT_DUR), 6);
+}
+
 export function render(c: CanvasRenderingContext2D, g: Game, lo: Loadout, v: View, time: number, trailId: string): void {
   background(c, g, v);
   const cam = g.camX;
@@ -147,6 +230,10 @@ export function render(c: CanvasRenderingContext2D, g: Game, lo: Loadout, v: Vie
   for (let i = 0; i < POOL.bonus; i++) if (g.bonOn[i]) bonusIcon(c, g.bonK[i], g.bonX[i] - cam, g.bonY[i], time);
   for (const o of g.obs) if (o.active && Math.max(o.x1, o.x2) - cam > -40 && Math.min(o.x1, o.x2) - cam < v.w + 40) drawObs(c, o, cam, time, v.reduce);
   for (const m of g.missiles) if (m.active) drawObs(c, m, cam, time, v.reduce);
+  for (const m of g.meteors) if (m.active) drawObs(c, m, cam, time, v.reduce);
+  for (const m of g.beams) if (m.active) drawObs(c, m, cam, time, v.reduce);
+  if (g.evtKind === E_DRONE) drawDrone(c, g, v, time);
+  if (g.evtKind === E_WIND) drawWind(c, g, v, time);
   // traînée
   for (let i = 0; i < POOL.parts; i++) {
     if (g.pLife[i] <= 0) continue;
@@ -177,6 +264,8 @@ export function render(c: CanvasRenderingContext2D, g: Game, lo: Loadout, v: Vie
       c.fillStyle = INK; c.fillRect(v.w - 41, y - 7, 3, 12); c.fillRect(v.w - 41, y + 8, 3, 3);
     }
   }
+  drawWarnings(c, g, v, time);
+  drawBanner(c, g, v);
   if (v.flash > 0 && !v.reduce) { c.fillStyle = `rgba(255,255,255,${v.flash * 0.6})`; c.fillRect(0, 0, v.w, H); }
   void B_MAGNET; void star;
 }

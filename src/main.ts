@@ -9,7 +9,7 @@ import { render } from './render';
 import { TUTO_KIND, applyRun, missionText } from './missions';
 import { Save, load, localStore, persist } from './save';
 import {
-  EV_BALLOON_END, EV_BONUS, EV_COIN, EV_DEAD, EV_GRAZE, EV_HIT, EV_WARN, Game, perksFor,
+  EV_BALLOON_END, EV_BEAM, EV_BONUS, EV_EVENT, EV_EVENT_END, EVENT_NAMES, EV_COIN, EV_DEAD, EV_GRAZE, EV_HIT, EV_WARN, Game, perksFor,
 } from './sim';
 
 const $ = <T extends HTMLElement>(id: string): T => {
@@ -161,6 +161,9 @@ function onEvents(e: number): void {
   if (e & EV_BONUS) { sound.bonus(); }
   if (e & EV_GRAZE) { sound.graze(); say('Frôlé !'); }
   if (e & EV_WARN) { sound.warn(); }
+  if (e & EV_BEAM) { sound.beam(); shake = Math.max(shake, 0.4); }
+  if (e & EV_EVENT) { sound.event(); say(EVENT_NAMES[game.evtKind]); }
+  if (e & EV_EVENT_END) { sound.bonus(); say('Événement survécu : pièces bonus !'); }
   if (e & EV_HIT) { sound.shieldBreak(); shake = 1; flash = 1; }
   if (e & EV_BALLOON_END && !(e & EV_HIT)) say('Le ballon s’envole.');
   if (e & EV_DEAD) {
@@ -510,3 +513,8 @@ mq.addEventListener?.('change', applyMotion);
 resize();
 openTitle('b-play');
 requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
+
+// Crochet de test e2e : présent seulement dans `npm run build:e2e` (dist-e2e) ou `vite dev`, jamais dans dist.
+if (import.meta.env.DEV || import.meta.env.MODE === 'e2e') {
+  (window as unknown as { __gf: unknown }).__gf = { game: () => game };
+}
