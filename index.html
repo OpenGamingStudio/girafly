@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Girafly</title>
+<meta name="description" content="Girafly, un jeu web open source d'OpenGamingStudio : Gigi la girafe vole avec son jetpack entre lasers, missiles et acacias. Un doigt, un envol !">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'none'; manifest-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="theme-color" content="#6ec6ff">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<script type="module" src="/src/main.ts"></script>
+</head>
+<body class="font-sans">
+<main id="app" class="fixed inset-0 overflow-hidden">
+  <canvas id="stage" class="absolute inset-0 h-full w-full touch-none" role="img" aria-label="Plateau de jeu : maintiens l'écran, la souris ou la touche Espace pour monter avec le jetpack, relâche pour descendre"></canvas>
+  <div id="live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- HUD de partie -->
+  <div id="hud" hidden class="pointer-events-none absolute inset-0 edge-pad">
+    <div class="relative h-full w-full">
+      <button id="btn-pause" type="button" class="btn-icon pointer-events-auto absolute left-0 top-0" aria-label="Pause">
+        <svg viewBox="0 0 24 24" class="h-6 w-6" aria-hidden="true"><rect x="6" y="5" width="4.5" height="14" rx="1" fill="#1f1a2e"/><rect x="13.5" y="5" width="4.5" height="14" rx="1" fill="#1f1a2e"/></svg>
+      </button>
+      <p class="chip absolute left-1/2 top-0 -translate-x-1/2 text-2xl"><span class="sr-only">Distance :</span><span id="hud-dist">0</span>&nbsp;m</p>
+      <p class="chip absolute right-0 top-0">
+        <svg class="h-6 w-6" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="#ffc928" stroke="#1f1a2e" stroke-width="3"/><ellipse cx="12" cy="12" rx="3.2" ry="5" fill="none" stroke="#c98a00" stroke-width="2"/></svg>
+        <span class="sr-only">Pièces :</span><span id="hud-coins">0</span>
+      </p>
+      <p id="hud-bonus" class="chip absolute left-1/2 top-14 -translate-x-1/2 text-sm" hidden></p>
+      <p id="hud-ready" class="chip absolute bottom-0 left-1/2 -translate-x-1/2 text-lg">Maintiens pour décoller !</p>
+    </div>
+  </div>
+
+  <!-- Titre -->
+  <section id="s-title" class="screen edge-pad" aria-labelledby="t-title">
+    <div class="plaque m-auto flex w-full max-w-md flex-col items-center gap-3 text-center">
+      <h1 id="t-title" class="text-4xl font-bold leading-none text-tomato sm:text-5xl">Girafly</h1>
+      <p class="text-base">Gigi la girafe a un jetpack. Évite lasers, missiles et acacias !</p>
+      <p class="text-sm text-ink/80">Record : <span id="t-best">0</span> m · <span id="t-coins">0</span> pièces</p>
+      <button id="b-play" type="button" class="btn btn-main w-full">Jouer</button>
+      <div class="grid w-full grid-cols-2 gap-2 sm:grid-cols-4">
+        <button id="b-shop" type="button" class="btn">Boutique</button>
+        <button id="b-missions" type="button" class="btn">Missions</button>
+        <button id="b-options" type="button" class="btn">Options</button>
+        <button id="b-help" type="button" class="btn">Aide</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pause -->
+  <section id="s-pause" hidden class="screen edge-pad" aria-labelledby="t-pause">
+    <div class="plaque m-auto flex w-full max-w-sm flex-col gap-3 text-center">
+      <h2 id="t-pause" class="text-3xl font-bold">Pause</h2>
+      <button id="b-resume" type="button" class="btn btn-main">Reprendre</button>
+      <button id="b-quit" type="button" class="btn">Quitter la partie</button>
+    </div>
+  </section>
+
+  <!-- Fin de partie -->
+  <section id="s-over" hidden class="screen edge-pad" aria-labelledby="t-over">
+    <div class="plaque m-auto flex w-full max-w-lg flex-col gap-3 text-center">
+      <h2 id="t-over" class="text-3xl font-bold text-tomato">Aïe, plouf !</h2>
+      <p id="o-record" class="chip mx-auto" hidden>Nouveau record !</p>
+      <dl class="grid grid-cols-3 gap-2">
+        <div class="stat"><dt class="text-sm">Distance</dt><dd class="text-2xl font-bold"><span id="o-dist">0</span> m</dd></div>
+        <div class="stat"><dt class="text-sm">Record</dt><dd class="text-2xl font-bold"><span id="o-best">0</span> m</dd></div>
+        <div class="stat"><dt class="text-sm">Pièces</dt><dd class="text-2xl font-bold">+<span id="o-coins">0</span></dd></div>
+      </dl>
+      <p id="o-extra" class="text-sm"></p>
+      <ul id="o-missions" class="flex flex-col gap-1 text-left text-sm"></ul>
+      <div class="grid grid-cols-3 gap-2">
+        <button id="b-again" type="button" class="btn btn-main col-span-3 sm:col-span-1">Rejouer</button>
+        <button id="b-over-shop" type="button" class="btn">Boutique</button>
+        <button id="b-over-menu" type="button" class="btn">Menu</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Boutique -->
+  <section id="s-shop" hidden class="screen edge-pad" aria-labelledby="t-shop">
+    <div class="plaque m-auto flex h-full max-h-[34rem] w-full max-w-4xl flex-col gap-2 overflow-hidden">
+      <div class="flex flex-wrap items-center gap-2">
+        <h2 id="t-shop" class="mr-auto text-2xl font-bold">Boutique</h2>
+        <p class="chip"><span class="sr-only">Pièces :</span><span id="shop-coins">0</span> pièces</p>
+        <div role="tablist" aria-label="Boutique" class="flex gap-2">
+          <button id="tab-gadgets" role="tab" type="button" class="btn tab" aria-selected="true" aria-controls="p-gadgets">Gadgets</button>
+          <button id="tab-style" role="tab" type="button" class="btn tab" aria-selected="false" aria-controls="p-style">Style</button>
+        </div>
+        <button id="b-shop-close" type="button" class="btn">Retour</button>
+      </div>
+      <div id="p-gadgets" role="tabpanel" aria-labelledby="tab-gadgets" class="min-h-0 flex-1 overflow-y-auto"><ul id="gadgets" class="flex flex-col gap-2"></ul></div>
+      <div id="p-style" role="tabpanel" aria-labelledby="tab-style" hidden class="flex min-h-0 flex-1 gap-3">
+        <div class="flex w-32 shrink-0 flex-col items-center gap-1 sm:w-48">
+          <canvas id="preview" width="208" height="208" class="preview" role="img" aria-label="Aperçu de Gigi avec les cosmétiques choisis"></canvas>
+          <p id="sel-name" class="text-center text-sm font-bold leading-tight"></p>
+          <button id="sel-act" type="button" class="btn btn-main w-full text-sm"></button>
+        </div>
+        <div class="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
+          <div id="slot-tabs" role="tablist" aria-label="Emplacement" class="flex gap-1 overflow-x-auto pb-1"></div>
+          <ul id="items" class="grid min-h-0 flex-1 grid-cols-3 content-start gap-2 overflow-y-auto pb-1 sm:grid-cols-4"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Missions -->
+  <section id="s-missions" hidden class="screen edge-pad" aria-labelledby="t-missions">
+    <div class="plaque m-auto flex w-full max-w-lg flex-col gap-3">
+      <h2 id="t-missions" class="text-2xl font-bold">Missions</h2>
+      <p class="text-sm">Niveau <b id="m-level">1</b> / 20 · <span id="m-xp"></span></p>
+      <ul id="m-list" class="flex flex-col gap-2"></ul>
+      <button id="b-missions-close" type="button" class="btn">Retour</button>
+    </div>
+  </section>
+
+  <!-- Options -->
+  <section id="s-options" hidden class="screen edge-pad" aria-labelledby="t-options">
+    <div class="plaque m-auto flex w-full max-w-md flex-col gap-3">
+      <h2 id="t-options" class="text-2xl font-bold">Options</h2>
+      <button id="o-sound" type="button" role="switch" aria-checked="true" class="btn justify-between"><span>Son</span><span class="sw" aria-hidden="true"></span></button>
+      <button id="o-motion" type="button" role="switch" aria-checked="false" class="btn justify-between"><span>Mouvement réduit</span><span class="sw" aria-hidden="true"></span></button>
+      <label class="flex items-center justify-between gap-3 text-base font-bold">Volume
+        <input id="o-volume" type="range" min="0" max="100" step="5" class="h-11 w-44 accent-tomato">
+      </label>
+      <button id="b-options-close" type="button" class="btn">Retour</button>
+    </div>
+  </section>
+
+  <!-- Aide -->
+  <section id="s-help" hidden class="screen edge-pad" aria-labelledby="t-help">
+    <div class="plaque m-auto flex w-full max-w-lg flex-col gap-2 text-sm">
+      <h2 id="t-help" class="text-2xl font-bold">Comment jouer</h2>
+      <ul class="flex list-disc flex-col gap-1 pl-5">
+        <li><b>Maintiens</b> l'écran (ou la souris, ou Espace / flèche haut) : le jetpack te fait monter. <b>Relâche</b> : tu descends.</li>
+        <li>Évite les <b>barres laser</b> (rouges, à losanges), les <b>missiles</b> (une alerte te prévient 1 s avant) et les <b>acacias électrifiés</b> (verts, à épines).</li>
+        <li>Ramasse les pièces et les bonus : <b>bouclier</b> (1 coup), <b>aimant</b>, <b>Ballon-zèbre</b> (vol stable, 1 coup).</li>
+        <li><b>Frôle un laser avec la tête</b> (le long cou de Gigi !) : pièces bonus.</li>
+        <li>Le cou n'est pas fatal : seuls le corps et la tête comptent.</li>
+      </ul>
+      <button id="b-help-close" type="button" class="btn">Retour</button>
+    </div>
+  </section>
+
+  <!-- Portrait : tourne ton téléphone -->
+  <section id="s-rotate" hidden class="screen z-50 bg-sky p-6" role="alertdialog" aria-labelledby="t-rotate">
+    <div class="m-auto flex flex-col items-center gap-4 text-center">
+      <svg class="rotor h-40 w-40" viewBox="0 0 120 120" aria-hidden="true">
+        <rect x="38" y="10" width="44" height="100" rx="8" fill="#fff6e0" stroke="#1f1a2e" stroke-width="4"/>
+        <circle cx="60" cy="98" r="3.5" fill="#1f1a2e"/>
+        <rect x="46" y="22" width="28" height="64" rx="3" fill="#7fd4ff" stroke="#1f1a2e" stroke-width="3"/>
+        <path d="M58 76v-26" stroke="#1f1a2e" stroke-width="12" stroke-linecap="round"/><path d="M58 76v-26" stroke="#ffc43d" stroke-width="7" stroke-linecap="round"/>
+        <ellipse cx="62" cy="46" rx="9" ry="7" fill="#ffc43d" stroke="#1f1a2e" stroke-width="3"/>
+        <ellipse cx="55" cy="78" rx="10" ry="7" fill="#ffc43d" stroke="#1f1a2e" stroke-width="3"/>
+        <circle cx="65" cy="44" r="1.8" fill="#1f1a2e"/>
+      </svg>
+      <h2 id="t-rotate" class="text-3xl font-bold">Tourne ton téléphone</h2>
+      <p class="text-lg">Girafly se joue en mode paysage.</p>
+    </div>
+  </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "Girafly",
+  "short_name": "Girafly",
+  "description": "Gigi la girafe vole avec son jetpack entre lasers, missiles et acacias.",
+  "lang": "fr",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "landscape",
+  "theme_color": "#6ec6ff",
+  "background_color": "#7fd4ff",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

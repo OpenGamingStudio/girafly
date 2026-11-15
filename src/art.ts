@@ -281,8 +281,8 @@ export function drawThumb(c: Ctx, itemId: string, slot: Slot, base: Loadout, w: 
     return;
   }
   const pose: Pose = { vy: 0, t: 0.4, speed: 260, thrusting: false };
-  const zoom = slot === 'coat' ? 1.5 : slot === 'hat' ? 3.4 : slot === 'scarf' ? 2.6 : 2.8;
-  const focus: Record<string, [number, number]> = { coat: [-1, -6], hat: [12, -30], scarf: [2, -16], pack: [-12, 2] };
+  const zoom = slot === 'coat' ? 1.0 : slot === 'hat' ? 2.4 : slot === 'scarf' ? 2.0 : 1.9;
+  const focus: Record<string, [number, number]> = { coat: [-1, -13], hat: [9, -33], scarf: [-2, -14], pack: [-8, -2] };
   const [fx, fy] = focus[slot];
   c.translate(w / 2 - fx * (h / 40) * (zoom / 1.5), h / 2 - fy * (h / 40) * (zoom / 1.5));
   const sc = (h / 40) * (zoom / 1.5);
