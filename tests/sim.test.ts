@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { WARN_TIME } from '../src/config';
-import { EV_GRAZE } from '../src/sim';
+import { DT, WARN_TIME } from '../src/config';
+import { EV_GRAZE, METEOR_WARN } from '../src/sim';
 import { Game, perksFor } from '../src/sim';
 import { Obs, newObs } from '../src/geom';
 
@@ -239,5 +239,29 @@ describe('difficulté V2', () => {
     expect(sweeps).toBeGreaterThan(10);
     expect(beams - sweeps).toBeGreaterThan(5);
     expect(deaths).toBe(0);
+  }, 60000);
+
+  it('mineurs de Rémi : la ligne du laser à charge est figée pendant le tir, les météorites naissent à l’écran', () => {
+    let beams = 0, spawns = 0;
+    for (let seed = 1; seed <= 12; seed++) {
+      const g = new Game(seed);
+      g.setView(640);
+      let fireY = -1;
+      for (let i = 0; i < 250 * 60 && g.mode === 'run'; i++) {
+        if (g.beamKind === 0) fireY = -1;
+        const tg = g.guideY(g.x + 50);
+        g.step(g.y + g.vy * 0.12 > (tg < 0 ? 200 : tg));
+        if (g.beamKind === 1 && g.beams[0].active) {
+          if (fireY < 0) { fireY = g.beamY; beams++; }
+          expect(g.beamY).toBe(fireY);
+        }
+        if (i === 600) { g.evtKind = 2; g.evtT = 15; g.beamKind = 0; }
+        for (let m = 0; m < g.metX.length; m++) {
+          if (g.metWarn[m] > METEOR_WARN - 1.5 * DT) { spawns++; expect(g.metX[m]).toBeLessThanOrEqual(g.camX + g.viewW - 30 + 20); }
+        }
+      }
+    }
+    expect(beams).toBeGreaterThan(3);
+    expect(spawns).toBeGreaterThan(0);
   }, 60000);
 });

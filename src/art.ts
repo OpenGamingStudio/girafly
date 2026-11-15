@@ -87,6 +87,10 @@ export interface Pose {
   dead?: boolean;
   /** Mouvement réduit : hélice, écharpe et queue immobiles. */
   calm?: boolean;
+  /** Expression : 0 normale, 1 contente, 2 peur, 3 sonnée. */
+  mood?: number;
+  /** Paupière baissée (clignement). */
+  blink?: boolean;
 }
 
 // ---------- Bitmaps : chaque cosmétique est dessiné UNE fois dans un canvas hors écran ----------
@@ -152,7 +156,6 @@ function headOf(id: string): Spr {
       ell(c, 12, 4, 1.1, 1.4, INK, false);
       c.beginPath(); c.moveTo(-3, -7); c.lineTo(-4, -13); c.moveTo(3, -7); c.lineTo(4, -13); c.stroke();
       ell(c, -4, -14, 2, 2, INK, false); ell(c, 4, -14, 2, 2, INK, false);
-      ell(c, -8, -1, 3.4, 2, co.base, true, -0.5);
     });
     HEAD.set(id, s);
   }
@@ -178,9 +181,10 @@ function packOf(id: string): Spr {
 }
 function flame(): Spr {
   if (FLAME === undefined) {
-    FLAME = bake(-6, 11, 10, 15, (c) => {
-      poly(c, [-4, 12, 2, 12, -1, 12 + 7 * 1.6], '#ffc43d');
-      poly(c, [-2.5, 12, 0.5, 12, -1, 12 + 7], '#ff5a3c', false);
+    FLAME = bake(-7, 11, 12, 16, (c) => {
+      poly(c, [-5, 12, 3, 12, 1, 12 + 6, -1, 12 + 7 * 1.9, -3, 12 + 6], '#ff5a3c');
+      poly(c, [-3.4, 12, 1.4, 12, -1, 12 + 7 * 1.3], '#ffc43d', false);
+      poly(c, [-1.9, 12, 0, 12, -0.9, 12 + 7 * 0.6], '#ffffff', false);
     });
   }
   return FLAME;
@@ -223,6 +227,34 @@ function panOf(id: string): Spr {
   return s;
 }
 
+/** Œil et bouche selon l'expression (tracés simples, aucune allocation). */
+function face(c: Ctx, hx: number, hy: number, p: Pose, mood: number): void {
+  const ex = hx + 3.5, ey = hy - 1.5;
+  if (p.dead) {
+    c.beginPath(); c.moveTo(hx + 1, hy - 4); c.lineTo(hx + 6, hy + 1); c.moveTo(hx + 6, hy - 4); c.lineTo(hx + 1, hy + 1); c.stroke();
+    return;
+  }
+  if (mood === 3) {
+    // sonnée : spirale (arc), bouche ondulée
+    c.beginPath(); c.arc(ex, ey, 3.2, 0.5, 5.2); c.stroke(); c.beginPath(); c.arc(ex, ey, 1.2, 3, 8); c.stroke();
+    c.beginPath(); c.moveTo(hx + 5, hy + 6.4); c.lineTo(hx + 7, hy + 5.4); c.lineTo(hx + 9, hy + 6.4); c.lineTo(hx + 11, hy + 5.4); c.stroke();
+    return;
+  }
+  if (p.blink) { c.beginPath(); c.moveTo(ex - 2.6, ey + 0.6); c.lineTo(ex + 2.6, ey + 0.6); c.stroke(); }
+  else if (mood === 1) { c.beginPath(); c.arc(ex, ey + 1.4, 2.6, 3.6, 5.8); c.stroke(); }
+  else if (mood === 2) { ell(c, ex, ey, 3.2, 3.6, '#ffffff', true); ell(c, ex + 0.4, ey, 1, 1.2, INK, false); }
+  else { ell(c, ex, ey, 2.4, 2.7, '#ffffff', false); ell(c, ex + 0.7, ey + 0.3, 1.3, 1.6, INK, false); }
+  if (mood === 2) {
+    // sourcil relevé, bouche ouverte
+    c.beginPath(); c.moveTo(ex - 3, ey - 5.2); c.lineTo(ex + 3, ey - 3.6); c.stroke();
+    ell(c, hx + 8, hy + 6.4, 1.6, 2, INK, false);
+  } else if (mood === 1) {
+    c.beginPath(); c.arc(hx + 8, hy + 4.8, 3, 0.25, 2.2); c.stroke();
+  } else {
+    c.beginPath(); c.moveTo(hx + 6, hy + 6.6); c.lineTo(hx + 10.5, hy + 6.2); c.stroke();
+  }
+}
+
 // Cou : points calculés dans des variables de module (pas de tableau par image).
 let NX = 0, NY = 0;
 function neckPoint(hx: number, hy: number, bend: number, u: number): void {
@@ -242,16 +274,19 @@ export function drawGigi(c: Ctx, lo: Loadout, p: Pose): void {
   const co = coatOf(lo.coat);
   const hx = headDX(p.vy);
   const hy = headDY(p.vy);
-  const bend = Math.max(-8, Math.min(10, p.vy * 0.025));
+  const mood = p.mood ?? 0;
+  const bend = Math.max(-8, Math.min(10, p.vy * 0.025)) + (p.calm ? 0 : Math.sin(p.t * 2.4) * 1.2 + (mood === 2 ? Math.sin(p.t * 40) * 0.6 : 0));
   const wave = p.calm ? 0 : p.t;
 
   // jetpack (bitmap) et sa flamme (bitmap étiré)
   c.save();
   c.translate(-17, -1);
   put(c, packOf(lo.pack));
+  rect(c, -4.5, 9, 7, 4, '#5c5568');
   if (p.thrusting && !p.dead) {
-    const f = 7 + Math.sin(wave * 60) * 2.5;
-    c.translate(-1, 12); c.scale(1, f / 7); c.translate(1, -12);
+    // flamme animée : longueur et largeur vacillent à des rythmes différents
+    const f = 7 + Math.sin(wave * 60) * 2.5 + Math.sin(wave * 37) * 1.5;
+    c.translate(-1, 12); c.scale(1 + Math.sin(wave * 45) * 0.12, f / 7); c.translate(1, -12);
     put(c, flame());
   }
   c.restore();
@@ -292,8 +327,9 @@ export function drawGigi(c: Ctx, lo: Loadout, p: Pose): void {
   c.save(); c.translate(hx, hy);
   put(c, headOf(lo.coat));
   c.restore();
-  if (p.dead) { c.beginPath(); c.moveTo(hx + 1, hy - 4); c.lineTo(hx + 6, hy + 1); c.moveTo(hx + 6, hy - 4); c.lineTo(hx + 1, hy + 1); c.stroke(); }
-  else { ell(c, hx + 3.5, hy - 1.5, 2.4, 2.7, '#ffffff', false); ell(c, hx + 4.2, hy - 1.2, 1.3, 1.6, INK, false); }
+  // oreille : bat doucement, se couche en arrière quand Gigi a peur, se dresse quand elle est contente
+  ell(c, hx - 8, hy - 1, 3.4, 2, co.base, true, mood === 2 ? -1.1 : mood === 1 ? -0.1 : -0.5 + Math.sin(wave * 7) * 0.22);
+  face(c, hx, hy, p, mood);
   // coiffe (bitmap) ; l'hélice tourne sauf en mouvement réduit
   c.save(); c.translate(hx, hy);
   put(c, hatOf(lo.hat));

@@ -6,6 +6,8 @@ import {
 } from './catalog';
 import { DT, H, MAX_DPR } from './config';
 import { render } from './render';
+import { boom, clearFx, coinBurst, dust, smoke, sparks, updateFx } from './fx';
+import { PY_MAX } from './geom';
 import { TUTO_KIND, applyRun, missionText } from './missions';
 import { Save, load, localStore, persist } from './save';
 import {
@@ -85,11 +87,15 @@ let game = makeGame(); // partie
 let demo = makeGame(); // fond animé du menu
 let held = false;
 let shake = 0;
+let happy = 0; // secondes de joie après une pièce
+let smokeT = 0;
 let flash = 0;
 let nextMilestone = 100;
 
 function startRun(): void {
   game = makeGame();
+  clearFx();
+  happy = 0;
   game.setView(viewW);
   nextMilestone = 100;
   held = false;
@@ -157,17 +163,17 @@ function paintHud(): void {
 }
 
 function onEvents(e: number): void {
-  if (e & EV_COIN) sound.coin();
+  if (e & EV_COIN) { sound.coin(); coinBurst(game.x + 8, game.y - 26, reduced()); happy = 1.2; }
   if (e & EV_BONUS) { sound.bonus(); }
   if (e & EV_GRAZE) { sound.graze(); say('Frôlé !'); }
   if (e & EV_WARN) { sound.warn(); }
   if (e & EV_BEAM) { sound.beam(); shake = Math.max(shake, 0.4); }
   if (e & EV_EVENT) { sound.event(); say(EVENT_NAMES[game.evtKind]); }
   if (e & EV_EVENT_END) { sound.bonus(); say('Événement survécu : pièces bonus !'); }
-  if (e & EV_HIT) { sound.shieldBreak(); shake = 1; flash = 1; }
+  if (e & EV_HIT) { sound.shieldBreak(); shake = 1; flash = 1; boom(game.x, game.y - 6, reduced()); sparks(game.x, game.y - 6, 10, reduced()); }
   if (e & EV_BALLOON_END && !(e & EV_HIT)) say('Le ballon s’envole.');
   if (e & EV_DEAD) {
-    sound.dead(); shake = 1; flash = 1;
+    sound.dead(); shake = 1; flash = 1; boom(game.x, game.y - 6, reduced());
     if (navigator.userActivation?.hasBeenActive && navigator.vibrate) navigator.vibrate(60);
   }
 }
@@ -194,6 +200,14 @@ function frame(now: number): void {
     }
     if (n === 6) acc = 0;
     if (ev) onEvents(ev);
+    // fumée du jetpack et poussière au sol
+    smokeT -= dt;
+    if (smokeT <= 0 && game.mode === 'run') {
+      smokeT = reduce ? 0.2 : 0.05;
+      if (game.thrusting) smoke(game.x - 20, game.y + 14);
+      else if (game.y >= PY_MAX - 2 && !reduce) dust(game.x - 8, game.y + 18);
+    }
+    happy = Math.max(0, happy - dt);
     if (game.dist >= nextMilestone) { say(`${nextMilestone} mètres`); nextMilestone += 100; }
     paintHud();
     if (game.mode === 'over') endRun();
@@ -212,11 +226,12 @@ function frame(now: number): void {
     if (n === 3) acc = 0;
   }
   const g = screen === 'play' || screen === 'ready' || screen === 'pause' ? game : demo;
+  if (screen !== 'pause') updateFx(dt);
   shake = Math.max(0, shake - dt * 3);
   flash = Math.max(0, flash - dt * 4);
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   if (!reduce && shake > 0) ctx.translate(Math.sin(tSec * 90) * 5 * shake, Math.cos(tSec * 70) * 5 * shake);
-  render(ctx, g, loadout(), { w: viewW, reduce, shake, flash }, tSec, loadout().trail);
+  render(ctx, g, loadout(), { w: viewW, reduce, shake, flash, happy }, tSec, loadout().trail);
   if (screen === 'shop' && !$('p-style').hidden) drawPreview();
   requestAnimationFrame(frame);
 }

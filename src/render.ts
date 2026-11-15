@@ -2,6 +2,8 @@ import { CEIL, EVENT_DUR, FLOOR, H, POOL } from './config';
 import { INK, Loadout, drawGigi, drawTrailShape, star } from './art';
 import { B_BALLOON, B_MAGNET, B_SHIELD } from './gen';
 import { K_ACACIA, K_BEAM, K_LASER, K_METEOR, Obs } from './geom';
+import { drawFx } from './fx';
+import { drawBackground } from './scenery';
 import { BEAM_WARN, E_DRONE, E_WIND, EVENT_NAMES, Game, METEOR_WARN, SWEEP_HALF } from './sim';
 
 export interface View {
@@ -9,61 +11,10 @@ export interface View {
   reduce: boolean;
   shake: number; // 0 à 1
   flash: number; // 0 à 1 (supprimé si mouvement réduit)
+  happy?: number; // secondes de joie restantes (pièce ramassée)
 }
-
-const SKIES = [
-  { sky: '#7fd4ff', far: '#9be3c0', mid: '#5cc48a', ground: '#f2c86b', ground2: '#d9a441', cloud: '#ffffff' },
-  { sky: '#ffb36b', far: '#ff8a5c', mid: '#c4503a', ground: '#e8a25a', ground2: '#c47a35', cloud: '#ffe1c2' },
-  { sky: '#5b5fc7', far: '#3a3f93', mid: '#272b6b', ground: '#b38a4a', ground2: '#8c6a34', cloud: '#a9acf0' },
-];
 
 const mod = (a: number, b: number) => ((a % b) + b) % b;
-
-function acaciaTree(c: CanvasRenderingContext2D, x: number, base: number, s: number, col: string, trunk: string): void {
-  c.fillStyle = trunk;
-  c.fillRect(x - 2 * s, base - 30 * s, 4 * s, 30 * s);
-  c.fillStyle = col;
-  c.beginPath(); c.ellipse(x, base - 32 * s, 24 * s, 7 * s, 0, 0, 6.3); c.fill();
-}
-
-function background(c: CanvasRenderingContext2D, g: Game, v: View): void {
-  const pal = SKIES[Math.floor(g.dist / 500) % SKIES.length];
-  const par = v.reduce ? 0.35 : 1;
-  c.fillStyle = pal.sky;
-  c.fillRect(0, 0, v.w, H);
-  const cam = g.camX * par;
-  // nuages (plats)
-  c.fillStyle = pal.cloud;
-  for (let i = 0; i < 6; i++) {
-    const x = mod(i * 190 - cam * 0.08, v.w + 200) - 100;
-    const y = 50 + ((i * 53) % 90);
-    c.beginPath(); c.ellipse(x, y, 34, 10, 0, 0, 6.3); c.ellipse(x + 18, y - 7, 20, 9, 0, 0, 6.3); c.fill();
-  }
-  // collines lointaines et arbres
-  c.fillStyle = pal.far;
-  for (let i = 0; i < 5; i++) {
-    const x = mod(i * 260 - cam * 0.2, v.w + 400) - 200;
-    c.beginPath(); c.ellipse(x, FLOOR, 170, 70 + (i % 3) * 14, 0, Math.PI, 0); c.fill();
-  }
-  for (let i = 0; i < 8; i++) {
-    const x = mod(i * 170 - cam * 0.45, v.w + 200) - 100;
-    acaciaTree(c, x, FLOOR, 1 + (i % 3) * 0.25, pal.mid, '#6b4a2a');
-  }
-  // sol (savane) et plafond (feuillage)
-  c.fillStyle = pal.ground; c.fillRect(0, FLOOR, v.w, H - FLOOR);
-  c.fillStyle = pal.ground2; c.fillRect(0, FLOOR, v.w, 5);
-  c.fillStyle = INK; c.fillRect(0, FLOOR - 1, v.w, 2);
-  for (let i = 0; i < 14; i++) {
-    const x = mod(i * 64 - g.camX, v.w + 128) - 64;
-    c.fillStyle = pal.ground2; c.fillRect(x, FLOOR + 12 + (i % 3) * 6, 18, 3);
-  }
-  c.fillStyle = pal.mid; c.fillRect(0, 0, v.w, CEIL);
-  c.fillStyle = INK; c.fillRect(0, CEIL - 1, v.w, 2);
-  for (let i = 0; i < 18; i++) {
-    const x = mod(i * 48 - g.camX, v.w + 96) - 48;
-    c.fillStyle = pal.mid; c.beginPath(); c.ellipse(x, CEIL - 1, 18, 9 + (i % 3) * 3, 0, 0, Math.PI); c.fill();
-  }
-}
 
 const DASH = [5, 6], DASH2 = [8, 5], NODASH: number[] = [];
 function drawObs(c: CanvasRenderingContext2D, o: Obs, cam: number, t: number, reduce: boolean): void {
@@ -214,8 +165,17 @@ function drawBanner(c: CanvasRenderingContext2D, g: Game, v: View): void {
   c.fillStyle = '#ffd23f'; c.fillRect(x, 66, w * Math.max(0, g.evtT / EVENT_DUR), 6);
 }
 
+/** Expression de Gigi : sonnée au choc, peur devant un danger annoncé ou proche, contente après une pièce. */
+function moodOf(g: Game, v: View): number {
+  if (g.mode !== 'run' || g.invuln > 0) return 3;
+  if (g.beamKind !== 0 && g.beamT < BEAM_WARN) return 2;
+  for (let i = 0; i < POOL.missiles; i++) if (g.warnT[i] > 0 || (g.missiles[i].active && g.missiles[i].x1 - g.x < 220 && g.missiles[i].x1 > g.x)) return 2;
+  for (let i = 0; i < POOL.meteors; i++) if (g.metWarn[i] > 0) return 2;
+  return (v.happy ?? 0) > 0 ? 1 : 0;
+}
+
 export function render(c: CanvasRenderingContext2D, g: Game, lo: Loadout, v: View, time: number, trailId: string): void {
-  background(c, g, v);
+  drawBackground(c, g, v, time);
   const cam = g.camX;
   // pièces
   c.lineWidth = 2; c.strokeStyle = INK;
@@ -246,12 +206,13 @@ export function render(c: CanvasRenderingContext2D, g: Game, lo: Loadout, v: Vie
     c.save();
     c.translate(g.x - cam, g.y);
     if (g.balloonT > 0) drawBalloon(c, time);
-    drawGigi(c, lo, { vy: g.vy, t: time, speed: g.speed, thrusting: g.thrusting && g.mode === 'run', dead: g.mode !== 'run', calm: v.reduce });
+    drawGigi(c, lo, { vy: g.vy, t: time, speed: g.speed, thrusting: g.thrusting && g.mode === 'run', dead: g.mode !== 'run', calm: v.reduce, mood: moodOf(g, v), blink: mod(time, 3.6) < 0.12 });
     if (g.shield) {
       c.beginPath(); c.arc(2, -8, 34, 0, 6.3); c.lineWidth = 3; c.strokeStyle = '#3b82f6'; c.setLineDash(DASH2); c.stroke(); c.setLineDash(NODASH);
     }
     c.restore();
   }
+  drawFx(c, cam);
   // avertissements de missile : icône + bord d'écran (fixe si mouvement réduit)
   for (let i = 0; i < POOL.missiles; i++) {
     if (g.warnT[i] <= 0) continue;

@@ -363,14 +363,24 @@ export class Game {
    * (les obstacles fixes sont posés autour d'elle) ; la ligne du laser à charge s'écarte de cette trajectoire.
    */
   private beamFollow(): void {
-    const g = this.guideY(this.x + 70);
-    if (g < 0) return;
     if (this.beamKind === 2) {
+      const g = this.guideY(this.x + 70);
+      if (g < 0) return;
       // pas de borne : près du sol ou du plafond une des deux lignes sort du terrain, l'ouverture reste centrée sur le passage
       this.beamY = g;
-    } else if (this.beamKind === 1 && this.beamT < BEAM_WARN + BEAM_FIRE && Math.abs(this.beamY - g) < 45) {
-      const up = g - 80 >= CEIL + 40;
-      this.beamY = up ? g - 80 : g + 80;
+    } else if (this.beamKind === 1 && this.beamT < BEAM_WARN) {
+      // la ligne ne bouge que pendant l'avertissement ; elle se fige au tir et évite la trajectoire sur toute la durée du tir
+      const t0 = BEAM_WARN - this.beamT;
+      let lo = Infinity, hi = -Infinity;
+      for (let k = 0; k <= 7; k++) {
+        const y = this.guideY(this.x + 70 + this.speed * (t0 + (k / 7) * BEAM_FIRE));
+        if (y < 0) continue;
+        if (y < lo) lo = y;
+        if (y > hi) hi = y;
+      }
+      if (hi >= 0 && this.beamY > lo - 45 && this.beamY < hi + 45) {
+        this.beamY = lo - 80 >= CEIL + 40 ? lo - 80 : hi + 80;
+      }
     }
   }
 
@@ -452,7 +462,7 @@ export class Game {
         for (let i = 0; i < POOL.meteors; i++) {
           if (this.metWarn[i] > 0 || this.meteors[i].active) continue;
           this.metWarn[i] = METEOR_WARN;
-          this.metX[i] = this.x + this.speed * METEOR_WARN + this.rng.range(110, 300);
+          this.metX[i] = Math.min(this.camX + this.viewW - 30, this.x + this.speed * METEOR_WARN + this.rng.range(110, 300));
           break;
         }
         this.evtMet = 0.7;
