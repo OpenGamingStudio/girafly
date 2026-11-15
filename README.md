@@ -47,3 +47,9 @@ Lasers rotatifs, autres véhicules, boss, événements, défis quotidiens, mode 
 ## Licence
 
 MIT — voir `LICENSE`. La police Fredoka est sous licence SIL OFL 1.1.
+
+## Plein écran sur mobile : ce qui marche, ce qui est impossible
+
+- **Android / Chrome** : au premier tap, Girafly demande le plein écran (Fullscreen API) et verrouille l'orientation en paysage ; l'option « Plein écran » du menu Options l'active ou le coupe. Installé sur l'écran d'accueil (manifest `display: fullscreen`), le jeu s'ouvre directement sans barre d'adresse.
+- **iPhone / Safari** : Apple n'autorise **ni la Fullscreen API ni le verrou d'orientation** sur iPhone. Dans Safari la barre d'adresse reste donc visible, et c'est impossible à contourner. Le seul plein écran possible : Partager → « Sur l'écran d'accueil », puis ouvrir Girafly depuis l'icône. Un message (refermable, mémorisé) l'explique ; en portrait, « Tourne ton téléphone » s'affiche.
+- Hors ligne : un service worker garde le jeu après une première visite.

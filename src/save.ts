@@ -4,7 +4,7 @@ import { Mission, fillMissions, isMissionKind, tutoMission } from './missions';
 export const SAVE_KEY = 'girafly-save';
 export const SAVE_VERSION = 1;
 
-export interface Options { reduceMotion: boolean | null; sound: boolean; volume: number }
+export interface Options { reduceMotion: boolean | null; sound: boolean; volume: number; fullscreen: boolean }
 export interface Save {
   v: number;
   coins: number;
@@ -32,7 +32,7 @@ export function defaultSave(): Save {
     missionSeed: 1, missions: [tutoMission()], owned: freeIds(0),
     equipped: { ...DEFAULT_LOADOUT },
     upgrades: { jetpack: 0, magnet: 0, shield: 0, balloon: 0, mult: 0 },
-    options: { reduceMotion: null, sound: true, volume: 0.8 },
+    options: { reduceMotion: null, sound: true, volume: 0.8, fullscreen: true },
     seenHelp: false,
   };
   return s;
@@ -71,6 +71,7 @@ export function migrate(raw: unknown): Save {
     const o = r.options as Record<string, unknown>;
     s.options.reduceMotion = typeof o.reduceMotion === 'boolean' ? o.reduceMotion : null;
     s.options.sound = o.sound !== false;
+    s.options.fullscreen = o.fullscreen !== false;
     s.options.volume = typeof o.volume === 'number' && isFinite(o.volume) ? Math.max(0, Math.min(1, o.volume)) : 0.8;
   }
   if (Array.isArray(r.missions)) {
