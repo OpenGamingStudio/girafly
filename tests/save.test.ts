@@ -20,14 +20,14 @@ describe('sauvegarde', () => {
     const st = new Mem();
     st.setItem(SAVE_KEY, '{pas du json');
     expect(load(st).coins).toBe(0);
-    const s = migrate({ coins: 'beaucoup', upgrades: { magnet: 99, jetpack: -3, x: 1 }, owned: ['coat-zebre', 'nimporte'], equipped: { hat: 'hat-couronne', coat: 'coat-zebre' }, missions: [{ kind: 'zzz' }, null], extra: 1 });
+    const s = migrate({ coins: 'beaucoup', upgrades: { magnet: 99, jetpack: -3, x: 1 }, owned: ['coat-zebra', 'nimporte'], equipped: { hat: 'head-crown', coat: 'coat-zebra' }, missions: [{ kind: 'zzz' }, null], extra: 1 });
     expect(s.coins).toBe(0);
     expect(s.upgrades.magnet).toBe(5);
     expect(s.upgrades.jetpack).toBe(0);
-    expect(s.owned).toContain('coat-zebre');
+    expect(s.owned).toContain('coat-zebra');
     expect(s.owned).not.toContain('nimporte');
-    expect(s.equipped.coat).toBe('coat-zebre');
-    expect(s.equipped.hat).toBe('hat-none'); // non possédé
+    expect(s.equipped.coat).toBe('coat-zebra');
+    expect(s.equipped.hat).toBe('head-none'); // non possédé
     expect(s.missions).toHaveLength(3);
   });
   it('fonctionne sans stockage (navigation privée)', () => {
@@ -43,14 +43,14 @@ describe('sauvegarde', () => {
 });
 
 describe('catalogue', () => {
-  it('au moins 30 cosmétiques, répartis comme le brief', () => {
+  it('20 cosmétiques, répartis 5/5/4/3/3', () => {
     const count = (s: 'coat' | 'hat' | 'pack' | 'trail' | 'scarf') => itemsOf(s).length;
-    expect(count('coat')).toBe(8);
-    expect(count('hat')).toBe(8);
-    expect(count('pack')).toBe(6);
-    expect(count('trail')).toBe(6);
-    expect(count('scarf')).toBe(4);
-    expect(ITEMS.length).toBeGreaterThanOrEqual(30);
+    expect(count('coat')).toBe(5);
+    expect(count('hat')).toBe(5);
+    expect(count('pack')).toBe(4);
+    expect(count('trail')).toBe(3);
+    expect(count('scarf')).toBe(3);
+    expect(ITEMS.length).toBe(20);
     expect(new Set(ITEMS.map((i) => i.id)).size).toBe(ITEMS.length);
   });
   it('5 améliorations à 5 niveaux, coûts croissants', () => {
@@ -77,5 +77,22 @@ describe('missions et niveaux', () => {
     expect(levelOf(0)).toBe(1);
     expect(levelOf(xpFor(5))).toBe(5);
     expect(levelOf(1e9)).toBe(MAX_LEVEL);
+  });
+});
+
+describe('catalogue aligné sur l’équilibrage (20 cosmétiques)', () => {
+  it('compte 5/5/4/3/3 et offre les objets de mission au bon compteur', async () => {
+    const { ITEMS, itemsOf, freeIds, isUnlocked, itemById } = await import('../src/catalog');
+    expect(ITEMS.length).toBe(20);
+    expect(['coat', 'hat', 'pack', 'trail', 'scarf'].map((s) => itemsOf(s as never).length)).toEqual([5, 5, 4, 3, 3]);
+    expect(freeIds(0).sort()).toEqual(['coat-classic', 'pack-retro', 'scarf-stripes', 'trail-smoke']);
+    expect(freeIds(1)).toContain('head-goggles');
+    expect(freeIds(24)).not.toContain('head-crown');
+    expect(freeIds(25)).toContain('head-crown');
+    expect(isUnlocked(itemById('coat-stars')!, { missionsDone: 18 })).toBe(false);
+    expect(ITEMS.filter((i) => i.price > 0).reduce((a, i) => a + i.price, 0)).toBe(2450);
+  });
+  it('une sauvegarde à 19 missions possède le pelage nuit étoilée', () => {
+    expect(migrate({ missionsDone: 19 }).owned).toContain('coat-stars');
   });
 });

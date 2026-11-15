@@ -50,21 +50,17 @@ export function heart(c: Ctx, x: number, y: number, r: number, fill: string): vo
   c.fill();
 }
 
-interface Coat { base: string; kind: 'patch' | 'zebra' | 'leopard' | 'dots' | 'cow' | 'tiger' | 'rainbow' | 'night'; mark: string; alt?: string }
+interface Coat { base: string; kind: 'patch' | 'zebra' | 'dots' | 'harlequin' | 'night'; mark: string }
 const COATS: Record<string, Coat> = {
-  'coat-classique': { base: '#ffc43d', kind: 'patch', mark: '#b5651d' },
-  'coat-zebre': { base: '#ffffff', kind: 'zebra', mark: '#1f1a2e' },
-  'coat-leopard': { base: '#ffb02e', kind: 'leopard', mark: '#8a3b12' },
-  'coat-pois': { base: '#3fd0c9', kind: 'dots', mark: '#ffffff' },
-  'coat-vache': { base: '#ffffff', kind: 'cow', mark: '#1f1a2e' },
-  'coat-tigre': { base: '#ff8a1f', kind: 'tiger', mark: '#1f1a2e' },
-  'coat-arcenciel': { base: '#ff5a5f', kind: 'rainbow', mark: '#ffc43d', alt: '#3fd0c9' },
-  'coat-nuit': { base: '#2b2f77', kind: 'night', mark: '#ffe066' },
+  'coat-classic': { base: '#F5A524', kind: 'patch', mark: '#7A3E12' },
+  'coat-zebra': { base: '#FFFFFF', kind: 'zebra', mark: '#16110F' },
+  'coat-dots': { base: '#1F5FD0', kind: 'dots', mark: '#FFFFFF' },
+  'coat-stars': { base: '#1B2A5A', kind: 'night', mark: '#FFF6E0' },
+  'coat-harlequin': { base: '#FFD60A', kind: 'harlequin', mark: '#E8402A' },
 };
-export const coatBase = (id: string) => (COATS[id] ?? COATS['coat-classique']).base;
+export const coatBase = (id: string) => (COATS[id] ?? COATS['coat-classic']).base;
 
 const BODY_MARKS = [-9, -2, -1, 6, 6, -3, -8, 7, 4, 8, -13, 3];
-const RAINBOW = ['#ff5a5f', '#ffa62b', '#ffe066', '#3fd0c9', '#5b7cfa'];
 
 function mark(c: Ctx, co: Coat, x: number, y: number, k: number, ang: number): void {
   c.fillStyle = co.mark;
@@ -72,17 +68,12 @@ function mark(c: Ctx, co: Coat, x: number, y: number, k: number, ang: number): v
     case 'patch':
       c.beginPath(); c.ellipse(x, y, 3.6, 3, ang, 0, 6.3); c.fill(); break;
     case 'zebra':
-    case 'tiger':
       c.save(); c.translate(x, y); c.rotate(ang);
       c.fillRect(-1.4, -6, 2.8, 12); c.restore(); break;
-    case 'leopard':
-      c.beginPath(); c.arc(x, y, 3.2, 0, 6.3); c.lineWidth = 1.8; c.strokeStyle = co.mark; c.stroke(); c.lineWidth = LW; c.strokeStyle = INK; break;
     case 'dots':
       c.beginPath(); c.arc(x, y, 2.6, 0, 6.3); c.fill(); break;
-    case 'cow':
-      if (k % 2 === 0) { c.beginPath(); c.ellipse(x, y, 4.6, 3.2, ang + k, 0, 6.3); c.fill(); } break;
-    case 'rainbow':
-      c.fillStyle = RAINBOW[k % 5]; c.beginPath(); c.arc(x, y, 3, 0, 6.3); c.fill(); break;
+    case 'harlequin':
+      c.save(); c.translate(x, y); c.rotate(Math.PI / 4); c.fillRect(-2.4, -2.4, 4.8, 4.8); c.restore(); break;
     case 'night':
       star(c, x, y, 3.2, co.mark); break;
   }
@@ -109,7 +100,7 @@ export function drawGigi(c: Ctx, lo: Loadout, p: Pose): void {
   c.lineJoin = 'round';
   c.lineCap = 'round';
   c.strokeStyle = INK;
-  const co = COATS[lo.coat] ?? COATS['coat-classique'];
+  const co = COATS[lo.coat] ?? COATS['coat-classic'];
   const hx = headDX(p.vy);
   const hy = headDY(p.vy);
   const bend = Math.max(-8, Math.min(10, p.vy * 0.025));
@@ -117,7 +108,7 @@ export function drawGigi(c: Ctx, lo: Loadout, p: Pose): void {
   drawPack(c, lo.pack, p);
   // queue
   c.beginPath(); c.moveTo(-14, 2); c.quadraticCurveTo(-22, 2 + Math.sin(p.t * 9) * 2, -24, 8); c.lineWidth = 4; c.strokeStyle = INK; c.stroke();
-  c.lineWidth = LW; ell(c, -24, 9, 2.6, 3, co.mark === '#ffffff' ? '#1f1a2e' : co.mark === '#1f1a2e' ? '#1f1a2e' : '#b5651d');
+  c.lineWidth = LW; ell(c, -24, 9, 2.6, 3, co.mark === '#FFFFFF' || co.mark === '#FFF6E0' ? INK : co.mark);
   // pattes
   const sw = p.thrusting ? 0.4 : 1;
   rect(c, -9, 10, 5, 8 + sw, co.base);
@@ -139,9 +130,7 @@ export function drawGigi(c: Ctx, lo: Loadout, p: Pose): void {
   ell(c, -1, 3, 15, 11, co.base);
   c.save();
   c.beginPath(); c.ellipse(-1, 3, 14, 10, 0, 0, 6.3); c.clip();
-  if (co.kind === 'rainbow') {
-    for (let i = 0; i < 5; i++) { c.fillStyle = RAINBOW[i]; c.fillRect(-16, -8 + i * 4.6, 32, 4.7); }
-  } else if (co.kind === 'zebra' || co.kind === 'tiger') {
+  if (co.kind === 'zebra') {
     for (let i = 0; i < 6; i++) mark(c, co, -12 + i * 4.5, 3, i, 0.25);
   } else {
     for (let i = 0; i < BODY_MARKS.length; i += 2) mark(c, co, BODY_MARKS[i], BODY_MARKS[i + 1] + 2, i / 2, 0.3);
@@ -161,7 +150,7 @@ export function drawGigi(c: Ctx, lo: Loadout, p: Pose): void {
   // œil (X si K.O.)
   if (p.dead) { c.beginPath(); c.moveTo(hx + 1, hy - 4); c.lineTo(hx + 6, hy + 1); c.moveTo(hx + 6, hy - 4); c.lineTo(hx + 1, hy + 1); c.stroke(); }
   else { ell(c, hx + 3.5, hy - 1.5, 2.4, 2.7, '#ffffff', false); ell(c, hx + 4.2, hy - 1.2, 1.3, 1.6, INK, false); }
-  drawHat(c, lo.hat, hx, hy);
+  drawHat(c, lo.hat, hx, hy, p.t * 6 * Math.PI * 2 * (p.speed / 14 / 32));
 }
 
 function drawPack(c: Ctx, id: string, p: Pose): void {
@@ -169,27 +158,18 @@ function drawPack(c: Ctx, id: string, p: Pose): void {
   c.translate(-17, -1);
   c.lineWidth = LW;
   switch (id) {
-    case 'pack-lait':
-      for (const dy of [-5, 4]) { rect(c, -7, dy - 4, 12, 9, '#ffffff'); rect(c, -8, dy - 5, 3, 11, '#5b7cfa'); ell(c, 0, dy, 2, 2, '#5b7cfa', false); }
-      break;
-    case 'pack-fusees':
-      for (const dy of [-5, 4]) { poly(c, [-9, dy - 4, 4, dy - 4, 9, dy, 4, dy + 4, -9, dy + 4], '#ff5a3c'); rect(c, -9, dy - 2, 3, 4, '#ffe066', false); }
+    case 'pack-milk':
+      for (const dy of [-5, 4]) { rect(c, -7, dy - 4, 12, 9, '#ffffff'); rect(c, -8, dy - 5, 3, 11, '#1F5FD0'); ell(c, 0, dy, 2, 2, '#1F5FD0', false); }
       break;
     case 'pack-soda':
-      poly(c, [-8, -7, 4, -7, 8, -3, 8, 3, 4, 7, -8, 7], '#3fd0a0'); rect(c, -4, -3, 7, 6, '#ffffff', false); rect(c, 8, -2, 3, 4, '#ff5a3c');
+      for (const dy of [-5, 4]) { poly(c, [-8, dy - 3, 2, dy - 3, 4, dy - 1, 8, dy - 1, 8, dy + 1, 4, dy + 1, 2, dy + 3, -8, dy + 3], '#2E9E4A'); rect(c, -5, dy - 2, 5, 4, '#FFD60A', false); }
       break;
-    case 'pack-ventilo':
-      rect(c, -8, -7, 9, 14, '#8fa3b8'); {
-        c.save(); c.translate(3, 0); c.rotate(p.t * 28);
-        for (let i = 0; i < 3; i++) { c.rotate((Math.PI * 2) / 3); ell(c, 0, 5, 2.4, 5.2, '#ff5a3c'); }
-        c.restore(); ell(c, 3, 0, 1.8, 1.8, INK, false);
-      }
-      break;
-    case 'pack-nuage':
-      ell(c, -2, -4, 6, 5, '#ffffff'); ell(c, 4, 2, 6, 5, '#ffffff'); ell(c, -5, 3, 6, 5, '#ffffff'); ell(c, 0, 1, 5, 4, '#ffffff', false);
+    case 'pack-teapot':
+      ell(c, -1, 0, 8, 7, '#FFF6E0'); poly(c, [6, -2, 12, -6, 12, -4, 8, 1], '#FFF6E0'); rect(c, -4, -9, 6, 3, '#FFF6E0');
+      c.fillStyle = '#E8402A'; for (const [dx, dy] of [[-4, -1], [1, 2], [0, -3]]) { c.beginPath(); c.arc(dx, dy, 1.3, 0, 6.3); c.fill(); }
       break;
     default:
-      rect(c, -8, -8, 14, 16, '#8fa3b8'); rect(c, -8, -4, 14, 3, '#5b6b80', false); rect(c, -4, 8, 6, 3, '#ff5a3c');
+      for (const dy of [-5, 4]) { poly(c, [-9, dy - 4, 4, dy - 4, 9, dy, 4, dy + 4, -9, dy + 4], '#C9CED6'); rect(c, -9, dy - 2, 3, 4, '#E5322D', false); }
   }
   if (p.thrusting && !p.dead) {
     const f = 7 + Math.sin(p.t * 60) * 2.5;
@@ -200,17 +180,15 @@ function drawPack(c: Ctx, id: string, p: Pose): void {
 }
 
 function drawScarf(c: Ctx, id: string, nx: number, ny: number, p: Pose): void {
-  if (id === 'scarf-none') return;
   const cols: Record<string, [string, string]> = {
-    'scarf-rayee': ['#ff3d5a', '#ffffff'], 'scarf-tricot': ['#3b82f6', '#bfdbfe'],
-    'scarf-pois': ['#ffd23f', '#ff5a3c'], 'scarf-flamme': ['#ff6b1a', '#ffd23f'],
+    'scarf-stripes': ['#E8402A', '#FFF6E0'], 'scarf-aviator': ['#FFFFFF', '#FFFFFF'], 'scarf-knit': ['#1F5FD0', '#FFD60A'],
   };
-  const [a, b] = cols[id] ?? cols['scarf-rayee'];
+  const [a, b] = cols[id] ?? cols['scarf-stripes'];
   // bande autour du cou
   c.save(); c.translate(nx, ny);
   c.beginPath(); c.ellipse(0, 0, 6.5, 3.6, -0.3, 0, 6.3); c.fillStyle = a; c.fill(); c.stroke();
   // pan flottant : la longueur et l'angle suivent la vitesse
-  const len = 14 + (p.speed - 220) * 0.12 + 8;
+  const len = (14 + (p.speed - 220) * 0.12 + 8) * (id === 'scarf-aviator' ? 1.5 : id === 'scarf-knit' ? 1.2 : 1);
   const segs = 5;
   for (let i = 0; i < segs; i++) {
     const u = i / segs;
@@ -219,36 +197,37 @@ function drawScarf(c: Ctx, id: string, nx: number, ny: number, p: Pose): void {
     const w = 5.5 - u * 1.5;
     c.fillStyle = i % 2 ? b : a;
     c.fillRect(x - len / segs, y - w / 2, len / segs + 0.8, w);
-    if (id === 'scarf-pois' && i % 2) { c.fillStyle = a; c.beginPath(); c.arc(x - len / (2 * segs), y, 1, 0, 6.3); c.fill(); }
-    if (id === 'scarf-tricot') { c.fillStyle = a; c.fillRect(x - 1, y - 0.5, 1.4, 1); }
+    if (id === 'scarf-knit') { c.fillStyle = b; c.fillRect(x - len / segs, y - 0.4, len / segs, 1); }
+    if (id === 'scarf-aviator' && i === segs - 1) { c.strokeStyle = INK; for (let k = 0; k < 3; k++) { c.beginPath(); c.moveTo(x - len / segs, y - 2 + k * 2); c.lineTo(x - len / segs - 2.5, y - 2.5 + k * 2); c.stroke(); } }
   }
+  if (id === 'scarf-knit') { c.fillStyle = '#FFF6E0'; for (const dy of [-1.5, 1.5]) { c.beginPath(); c.arc(-4 - len - 1, 1 + dy, 1.6, 0, 6.3); c.fill(); c.stroke(); } }
   c.restore();
 }
 
-function drawHat(c: Ctx, id: string, hx: number, hy: number): void {
+function drawHat(c: Ctx, id: string, hx: number, hy: number, propAngle: number): void {
   c.save();
   c.translate(hx, hy);
   c.lineWidth = LW;
   switch (id) {
-    case 'hat-casquette':
-      c.beginPath(); c.arc(0, -3, 9, Math.PI, 0); c.closePath(); c.fillStyle = '#ff3d5a'; c.fill(); c.stroke();
-      poly(c, [2, -4, 15, -3, 15, -1, 2, -1], '#c81e3d'); break;
-    case 'hat-bonnet':
-      poly(c, [-9, -3, -7, -11, 0, -15, 7, -11, 9, -3], '#3b82f6'); rect(c, -9.5, -5, 19, 3.5, '#bfdbfe'); ell(c, 0, -16, 3, 3, '#ffffff'); break;
-    case 'hat-lunettes':
-      ell(c, 3.5, -1.5, 4.4, 4.4, 'rgba(255,255,255,0.0)'); ell(c, -4, -1.5, 3.6, 3.6, 'rgba(255,255,255,0)');
-      c.fillStyle = '#1f1a2e'; c.fillRect(-1, -2, 1.2, 1.2); c.beginPath(); c.moveTo(-8, -2); c.lineTo(-10, -4); c.stroke(); break;
-    case 'hat-cowboy':
-      ell(c, 0, -8, 15, 3.6, '#9a5b25'); poly(c, [-6, -9, -5, -17, 5, -17, 6, -9], '#b9722f'); rect(c, -5.5, -12, 11, 2.4, '#1f1a2e', false); break;
-    case 'hat-aviateur':
-      c.beginPath(); c.arc(0, -1, 9.8, Math.PI * 0.95, Math.PI * 2.05); c.closePath(); c.fillStyle = '#8a5a2b'; c.fill(); c.stroke();
-      ell(c, -2, -9, 3.2, 3.2, '#bfe9ff'); ell(c, 4, -9, 3.2, 3.2, '#bfe9ff'); break;
-    case 'hat-hautdeforme':
-      ell(c, 0, -8, 11, 2.6, '#1f1a2e'); rect(c, -6.5, -21, 13, 13, '#2d2640'); rect(c, -6.5, -12, 13, 3, '#ff3d5a', false); break;
-    case 'hat-licorne':
-      poly(c, [-3, -8, 3, -8, 0.5, -22], '#fff1f8'); c.beginPath(); c.moveTo(-2, -12); c.lineTo(2, -14); c.moveTo(-1.5, -16); c.lineTo(1.2, -18); c.stroke(); star(c, 6, -14, 2.4, '#ffd23f'); break;
-    case 'hat-couronne':
-      poly(c, [-8, -7, -9, -17, -4, -12, 0, -19, 4, -12, 9, -17, 8, -7], '#ffc43d'); ell(c, 0, -10, 1.6, 1.6, '#ff3d5a', false); break;
+    case 'head-goggles':
+      ell(c, 3.5, -1.5, 3.8, 3.8, '#8FD3FF'); ell(c, -3.5, -1.5, 3.2, 3.2, '#8FD3FF');
+      c.strokeStyle = '#7A3E12'; c.beginPath(); c.moveTo(-6.7, -2); c.lineTo(-10, -4); c.stroke(); c.strokeStyle = INK; break;
+    case 'head-cap':
+      c.save(); c.rotate(-0.17);
+      c.beginPath(); c.arc(0, -3, 9, Math.PI, 0); c.closePath(); c.fillStyle = '#E8402A'; c.fill(); c.stroke();
+      poly(c, [-2, -4, -15, -3, -15, -1, -2, -1], '#16110F'); c.restore(); break;
+    case 'head-beanie':
+      poly(c, [-9, -3, -7, -11, 0, -15, 7, -11, 9, -3], '#2E9E4A'); rect(c, -9.5, -5, 19, 3.5, '#2E9E4A');
+      c.beginPath(); for (const dx of [-5, 0, 5]) { c.moveTo(dx, -5); c.lineTo(dx, -1.5); } c.stroke();
+      ell(c, 0, -16, 3, 3, '#FFF6E0'); break;
+    case 'head-propeller': {
+      c.beginPath(); c.arc(0, -3, 9, Math.PI, 0); c.closePath(); c.fillStyle = '#FFD60A'; c.fill(); c.stroke();
+      c.beginPath(); c.arc(0, -3, 9, Math.PI * 1.5, 0); c.lineTo(0, -3); c.closePath(); c.fillStyle = '#1F5FD0'; c.fill(); c.stroke();
+      rect(c, -0.8, -15, 1.6, 4, INK, false);
+      c.save(); c.translate(0, -15.5); c.rotate(propAngle); ell(c, -4.5, 0, 4.5, 1.3, '#E8402A'); ell(c, 4.5, 0, 4.5, 1.3, '#E8402A'); c.restore(); break;
+    }
+    case 'head-crown':
+      poly(c, [-8, -7, -9, -17, -4, -12, 0, -19, 4, -12, 9, -17, 8, -7], '#FFC21A'); for (const gx of [-5, 0, 5]) ell(c, gx, -9.5, 1.5, 1.5, '#E5322D', false); break;
   }
   c.restore();
 }
@@ -258,14 +237,9 @@ export function drawTrailShape(c: Ctx, id: string, x: number, y: number, s: numb
   c.lineWidth = 1.6;
   c.strokeStyle = INK;
   switch (id) {
-    case 'trail-coeurs': heart(c, x, y, s * 0.55, '#ff4d7e'); break;
-    case 'trail-etoiles': star(c, x, y, s * 0.65, '#ffd23f', true); break;
-    case 'trail-notes':
-      c.fillStyle = '#6d4cff'; c.beginPath(); c.ellipse(x - s * 0.15, y + s * 0.25, s * 0.28, s * 0.2, -0.4, 0, 6.3); c.fill();
-      c.beginPath(); c.moveTo(x + s * 0.1, y + s * 0.2); c.lineTo(x + s * 0.1, y - s * 0.5); c.lineTo(x + s * 0.4, y - s * 0.3); c.lineWidth = 2; c.stroke(); break;
-    case 'trail-bulles': c.beginPath(); c.arc(x, y, s * 0.42, 0, 6.3); c.fillStyle = '#d7f1ff'; c.fill(); c.stroke(); c.beginPath(); c.arc(x - s * 0.14, y - s * 0.14, s * 0.1, 0, 6.3); c.fillStyle = '#ffffff'; c.fill(); break;
-    case 'trail-confettis': c.save(); c.translate(x, y); c.rotate(k * 6); c.fillStyle = ['#ff3d5a', '#3fd0c9', '#ffd23f', '#6d4cff'][Math.floor(k * 4) % 4]; c.fillRect(-s * 0.3, -s * 0.15, s * 0.6, s * 0.3); c.restore(); break;
-    default: c.beginPath(); c.arc(x, y, s * 0.45, 0, 6.3); c.fillStyle = '#e6e2ee'; c.fill(); c.stroke();
+    case 'trail-hearts': heart(c, x, y, s * 0.55, '#E5322D'); break;
+    case 'trail-stars': star(c, x, y, s * 0.65, '#FFD60A', true); break;
+    default: c.beginPath(); c.arc(x, y, s * 0.45, 0, 6.3); c.fillStyle = '#C9CED6'; c.fill(); c.stroke();
   }
 }
 

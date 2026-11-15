@@ -2,7 +2,7 @@ import './style.css';
 import { Loadout, drawGigi, drawThumb } from './art';
 import { Sound } from './audio';
 import {
-  ITEMS, Item, NONE, SLOTS, SLOT_LABEL, Slot, UPGRADES, isUnlocked, itemById, itemsOf, unlockText,
+  ITEMS, Item, NONE, freeIds, SLOTS, SLOT_LABEL, Slot, UPGRADES, isUnlocked, itemById, itemsOf, unlockText,
 } from './catalog';
 import { DT, H, MAX_DPR } from './config';
 import { render } from './render';
@@ -117,6 +117,7 @@ function endRun(): void {
   save.missions = r.missions;
   save.missionSeed += 3;
   save.missionsDone += r.done.length;
+  for (const id of freeIds(save.missionsDone)) if (!save.owned.includes(id)) save.owned.push(id);
   save.coins += st.coins + bonus;
   save.totalCoins += st.coins + bonus;
   save.games++;
@@ -327,7 +328,7 @@ let shopTab: 'gadgets' | 'style' = 'gadgets';
 let slot: Slot = 'coat';
 let selected: Item | null = null;
 let shopFrom: Screen = 'title';
-const unl = () => ({ level: levelOf(save.xp), missionsDone: save.missionsDone });
+const unl = () => ({ missionsDone: save.missionsDone });
 
 function openShop(from: Screen): void {
   shopFrom = from;
@@ -423,7 +424,7 @@ function paintStyle(): void {
   }
   const ul = $('items');
   ul.textContent = '';
-  const list: (Item | null)[] = [...(slot === 'hat' || slot === 'scarf' ? [null] : []), ...itemsOf(slot)];
+  const list: (Item | null)[] = [...(slot === 'hat' ? [null] : []), ...itemsOf(slot)];
   for (const it of list) {
     const li = document.createElement('li');
     const b = document.createElement('button');

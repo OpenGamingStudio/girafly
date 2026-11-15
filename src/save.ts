@@ -1,4 +1,4 @@
-import { DEFAULT_LOADOUT, ITEMS, SLOTS, Slot, UpKey, UPGRADES, itemById } from './catalog';
+import { DEFAULT_LOADOUT, SLOTS, freeIds, Slot, UpKey, UPGRADES, itemById } from './catalog';
 import { Mission, TEMPLATES, pickMission } from './missions';
 
 export const SAVE_KEY = 'girafly-save';
@@ -29,7 +29,7 @@ const num = (v: unknown, d = 0, max = 1e9): number => (typeof v === 'number' && 
 export function defaultSave(): Save {
   const s: Save = {
     v: SAVE_VERSION, coins: 0, totalCoins: 0, games: 0, bestDist: 0, totalDist: 0, grazes: 0, xp: 0, missionsDone: 0,
-    missionSeed: 1, missions: [], owned: ITEMS.filter((i) => i.price === 0).map((i) => i.id),
+    missionSeed: 1, missions: [], owned: freeIds(0),
     equipped: { ...DEFAULT_LOADOUT },
     upgrades: { jetpack: 0, magnet: 0, shield: 0, balloon: 0, mult: 0 },
     options: { reduceMotion: null, sound: true, volume: 0.8 },
@@ -53,6 +53,7 @@ export function migrate(raw: unknown): Save {
     const ids = r.owned.filter((x): x is string => typeof x === 'string' && !!itemById(x));
     s.owned = Array.from(new Set([...s.owned, ...ids]));
   }
+  s.owned = Array.from(new Set([...s.owned, ...freeIds(s.missionsDone)]));
   if (r.equipped && typeof r.equipped === 'object') {
     const e = r.equipped as Record<string, unknown>;
     for (const sl of SLOTS) {
