@@ -115,7 +115,6 @@ export class Game {
   beamKind = 0;
   beamT = 0;
   beamY = 0;
-  beamY2 = 0;
   // météorites : alerte au sommet puis chute
   readonly meteors: Obs[] = [];
   readonly metWarn = new Float32Array(POOL.meteors);
@@ -325,10 +324,8 @@ export class Game {
       this.ev |= EV_WARN;
     } else {
       this.beamKind = 2; this.beamT = 0;
-      // l'ouverture démarre là où est Gigi et glisse vers l'autre moitié, ≤ 70 unités par seconde
+      // l'ouverture suit la trajectoire garantie (voir beamFollow)
       this.beamY = Math.max(CEIL + SWEEP_HALF + 6, Math.min(FLOOR - SWEEP_HALF - 6, this.y));
-      const dir = this.beamY > (CEIL + FLOOR) / 2 ? -1 : 1;
-      this.beamY2 = Math.max(CEIL + SWEEP_HALF + 6, Math.min(FLOOR - SWEEP_HALF - 6, this.beamY + dir * 70 * SWEEP_FIRE));
       this.ev |= EV_WARN;
     }
   }
@@ -361,11 +358,28 @@ export class Game {
     }
   }
 
+  /**
+   * Garantit que le laser laisse toujours un passage : l'ouverture du balayage suit la trajectoire garantie
+   * (les obstacles fixes sont posés autour d'elle) ; la ligne du laser à charge s'écarte de cette trajectoire.
+   */
+  private beamFollow(): void {
+    const g = this.guideY(this.x + 70);
+    if (g < 0) return;
+    if (this.beamKind === 2) {
+      // pas de borne : près du sol ou du plafond une des deux lignes sort du terrain, l'ouverture reste centrée sur le passage
+      this.beamY = g;
+    } else if (this.beamKind === 1 && this.beamT < BEAM_WARN + BEAM_FIRE && Math.abs(this.beamY - g) < 45) {
+      const up = g - 80 >= CEIL + 40;
+      this.beamY = up ? g - 80 : g + 80;
+    }
+  }
+
   /** Laser à charge (ligne fine qui clignote, puis tir) ou à balayage (ouverture qui glisse). */
   private beamLogic(): void {
     const [a, b] = this.beams;
     if (this.beamKind === 0) { a.active = false; b.active = false; return; }
     this.beamT += DT;
+    this.beamFollow();
     const fireT = this.beamKind === 1 ? BEAM_FIRE : SWEEP_FIRE;
     const e = this.beamT - BEAM_WARN;
     if (e >= fireT) { this.beamKind = 0; a.active = false; b.active = false; return; }
@@ -378,7 +392,7 @@ export class Game {
       a.active = true; b.active = false;
       a.r = 7; a.y1 = a.y2 = this.beamY;
     } else {
-      const c = this.beamY + (this.beamY2 - this.beamY) * (e / SWEEP_FIRE);
+      const c = this.beamY;
       a.active = true; b.active = true; a.r = b.r = 5;
       a.y1 = a.y2 = c - SWEEP_HALF - 5;
       b.y1 = b.y2 = c + SWEEP_HALF + 5;
@@ -438,7 +452,7 @@ export class Game {
         for (let i = 0; i < POOL.meteors; i++) {
           if (this.metWarn[i] > 0 || this.meteors[i].active) continue;
           this.metWarn[i] = METEOR_WARN;
-          this.metX[i] = this.x + this.rng.range(110, 300);
+          this.metX[i] = this.x + this.speed * METEOR_WARN + this.rng.range(110, 300);
           break;
         }
         this.evtMet = 0.7;

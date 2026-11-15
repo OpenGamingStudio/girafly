@@ -132,7 +132,7 @@ describe('simulation', () => {
 
 import { E_DRONE, EV_EVENT, EV_EVENT_END, BEAM_WARN, diffAt, speedAt } from '../src/sim';
 import { RAMP_T, SPEED0 } from '../src/config';
-import { K_LASER } from '../src/geom';
+import { K_LASER, playerGap } from '../src/geom';
 import { generate, newSeg, pathClear, pickPattern } from '../src/gen';
 import { Rng } from '../src/rng';
 
@@ -220,4 +220,24 @@ describe('difficulté V2', () => {
     expect(g.eventsDone).toBe(1);
     void E_DRONE;
   });
+
+  it('robot : un laser (à charge ou à balayage) laisse toujours un passage, sur 20 graines', () => {
+    let beams = 0, sweeps = 0, deaths = 0;
+    for (let seed = 1; seed <= 20; seed++) {
+      const g = new Game(seed);
+      g.setView(640);
+      let prev = 0;
+      for (let i = 0; i < 250 * 60 && g.mode === 'run'; i++) {
+        for (const m of [...g.missiles, ...g.meteors]) m.active = false;
+        if (g.beamKind !== 0 && prev === 0) { beams++; if (g.beamKind === 2) sweeps++; }
+        prev = g.beamKind;
+        const tg = g.guideY(g.x + 50);
+        g.step(g.y + g.vy * 0.12 > (tg < 0 ? 200 : tg));
+        if (g.mode !== 'run' && g.beams.some((b) => b.active && playerGap(g.x, g.y, g.vy, b) < 0)) deaths++;
+      }
+    }
+    expect(sweeps).toBeGreaterThan(10);
+    expect(beams - sweeps).toBeGreaterThan(5);
+    expect(deaths).toBe(0);
+  }, 60000);
 });

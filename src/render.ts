@@ -1,9 +1,8 @@
-import { CEIL, FLOOR, H, POOL } from './config';
+import { CEIL, EVENT_DUR, FLOOR, H, POOL } from './config';
 import { INK, Loadout, drawGigi, drawTrailShape, star } from './art';
 import { B_BALLOON, B_MAGNET, B_SHIELD } from './gen';
 import { K_ACACIA, K_BEAM, K_LASER, K_METEOR, Obs } from './geom';
-import { BEAM_WARN, E_DRONE, E_METEORS, E_WIND, EVENT_NAMES, Game, METEOR_WARN } from './sim';
-import { EVENT_DUR } from './config';
+import { BEAM_WARN, E_DRONE, E_WIND, EVENT_NAMES, Game, METEOR_WARN, SWEEP_HALF } from './sim';
 
 export interface View {
   w: number; // largeur logique
@@ -180,10 +179,10 @@ function drawWarnings(c: CanvasRenderingContext2D, g: Game, v: View, t: number):
       c.fillRect(0, g.beamY - 14, 12 + k * 14, 28); c.fillRect(v.w - 12 - k * 14, g.beamY - 14, 12 + k * 14, 28);
     } else {
       // l'ouverture sûre : deux repères jaunes et des lignes rouges de part et d'autre
-      for (const dy of [-72 - 5, 72 + 5]) { if (on) c.fillRect(0, g.beamY + dy - 1.5, v.w, 3); }
+      for (const dy of [-SWEEP_HALF - 5, SWEEP_HALF + 5]) { if (on) c.fillRect(0, g.beamY + dy - 1.5, v.w, 3); }
       c.fillStyle = '#ffd23f';
-      c.fillRect(0, g.beamY - 72, 12, 144); c.fillRect(v.w - 12, g.beamY - 72, 12, 144);
-      c.strokeStyle = INK; c.lineWidth = 2; c.strokeRect(0, g.beamY - 72, 12, 144); c.strokeRect(v.w - 12, g.beamY - 72, 12, 144);
+      c.fillRect(0, g.beamY - SWEEP_HALF, 12, SWEEP_HALF * 2); c.fillRect(v.w - 12, g.beamY - SWEEP_HALF, 12, SWEEP_HALF * 2);
+      c.strokeStyle = INK; c.lineWidth = 2; c.strokeRect(0, g.beamY - SWEEP_HALF, 12, SWEEP_HALF * 2); c.strokeRect(v.w - 12, g.beamY - SWEEP_HALF, 12, SWEEP_HALF * 2);
     }
   }
   for (let i = 0; i < POOL.meteors; i++) {
@@ -213,7 +212,6 @@ function drawBanner(c: CanvasRenderingContext2D, g: Game, v: View): void {
   const w = Math.min(v.w - 2 * 24, 200), x = (v.w - w) / 2;
   c.fillStyle = INK; c.fillRect(x - 2, 64, w + 4, 10);
   c.fillStyle = '#ffd23f'; c.fillRect(x, 66, w * Math.max(0, g.evtT / EVENT_DUR), 6);
-  void E_METEORS;
 }
 
 export function render(c: CanvasRenderingContext2D, g: Game, lo: Loadout, v: View, time: number, trailId: string): void {

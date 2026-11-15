@@ -10,7 +10,6 @@ export const THRUST = 1700;
 export const VY_UP = -340;
 export const VY_DOWN = 380;
 export const SPEED0 = 220;
-export const SPEED_MAX = 400;
 export const SPEED_STEP = 0.05; // +5 % de la vitesse de départ toutes les SPEED_STEP_T secondes
 export const SPEED_STEP_T = 20;
 export const SPEED_CAP = 1.8; // plafond lisible : ×1,8 (396)
