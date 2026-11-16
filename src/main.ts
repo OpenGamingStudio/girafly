@@ -12,6 +12,7 @@ import { BIOME_NAMES, biomeOf } from './scenery';
 import { enterFullscreen, exitFullscreen, fullscreenSupported, isFullscreen, isInstalled, needsHomeScreenHint } from './display';
 import { boom, clearFx, coinBurst, dust, smoke, sparks, updateFx } from './fx';
 import { PY_MAX } from './geom';
+import { VERSION } from './version';
 import { TUTO_KIND, applyRun, missionText } from './missions';
 import { Save, load, localStore, persist } from './save';
 import {
@@ -637,8 +638,8 @@ function drawPreview(): void {
   c.fillStyle = '#f2c86b';
   c.fillRect(0, cv.height - 28, cv.width, 28);
   c.save();
-  c.translate(cv.width / 2 - 8, cv.height * 0.62);
-  c.scale(3.2, 3.2);
+  c.translate(cv.width / 2 - 6, cv.height * 0.7);
+  c.scale(2.8, 2.8);
   const bob = reduced() ? 0 : Math.sin(tSec * 3) * 2;
   c.translate(0, bob);
   drawGigi(c, previewLoadout(), { vy: reduced() ? 0 : Math.cos(tSec * 3) * 40, t: tSec, speed: 260, thrusting: true, calm: reduced() });
@@ -646,6 +647,7 @@ function drawPreview(): void {
 }
 
 void ITEMS; void EV_DEAD;
+$('t-version').textContent = VERSION;
 // ---------- Plein écran, installation ----------
 // Premier tap (un geste est obligatoire) : plein écran + verrou paysage si le navigateur sait ; sinon rien, sans erreur.
 document.addEventListener('pointerdown', () => { if (save.options.fullscreen) void enterFullscreen(); }, { once: true });

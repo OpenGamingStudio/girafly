@@ -57,6 +57,10 @@ const COATS: Record<string, Coat> = {
   'coat-dots': { base: '#1F5FD0', kind: 'dots', mark: '#FFFFFF', tail: INK },
   'coat-stars': { base: '#1B2A5A', kind: 'night', mark: '#FFF6E0', tail: INK },
   'coat-harlequin': { base: '#FFD60A', kind: 'harlequin', mark: '#E8402A', tail: '#E8402A' },
+  'coat-cow': { base: '#FFFFFF', kind: 'patch', mark: '#16110F', tail: '#16110F' },
+  'coat-berry': { base: '#FF8FB8', kind: 'dots', mark: '#E5322D', tail: '#E5322D' },
+  'coat-mint': { base: '#5FE0B4', kind: 'harlequin', mark: '#FFFFFF', tail: '#1F8F6E' },
+  'coat-gold': { base: '#FFC21A', kind: 'night', mark: '#FFFFFF', tail: '#E8402A' },
 };
 export const coatBase = (id: string) => (COATS[id] ?? COATS['coat-classic']).base;
 
@@ -189,11 +193,11 @@ function flame(): Spr {
   }
   return FLAME;
 }
-const HATS = ['head-goggles', 'head-cap', 'head-beanie', 'head-propeller', 'head-crown'];
+const HATS = ['head-goggles', 'head-cap', 'head-beanie', 'head-propeller', 'head-crown', 'head-shades', 'head-party', 'head-flower', 'head-chef', 'head-tophat', 'head-wizard'];
 function hatOf(id: string): Spr {
   let s = HAT.get(id);
   if (s === undefined) {
-    s = HATS.includes(id) ? bake(-17, -21, 29, 26, (c) => drawHat(c, id)) : null;
+    s = HATS.includes(id) ? bake(-17, -34, 32, 40, (c) => drawHat(c, id)) : null;
     HAT.set(id, s);
   }
   return s;
@@ -204,10 +208,12 @@ function blades(): Spr {
 }
 const SCARVES: Record<string, [string, string]> = {
   'scarf-stripes': ['#E8402A', '#FFF6E0'], 'scarf-aviator': ['#FFFFFF', '#FFFFFF'], 'scarf-knit': ['#1F5FD0', '#FFD60A'],
+  'scarf-candy': ['#FF5FA2', '#FFFFFF'], 'scarf-sun': ['#FFD60A', '#FF8A1F'], 'scarf-rainbow': ['#E5322D', '#FFD60A'],
 };
+const RAINBOW = ['#E5322D', '#FF8A1F', '#FFD60A', '#2E9E4A', '#1F5FD0'];
 const scarfCols = (id: string): [string, string] => SCARVES[id] ?? SCARVES['scarf-stripes'];
 const PAN_LEN_REF = 26.8; // longueur du pan à 260 de vitesse de scène
-const panLen = (id: string): number => PAN_LEN_REF * (id === 'scarf-aviator' ? 1.5 : id === 'scarf-knit' ? 1.2 : 1);
+const panLen = (id: string): number => PAN_LEN_REF * (id === 'scarf-aviator' ? 1.5 : id === 'scarf-knit' || id === 'scarf-rainbow' ? 1.2 : 1);
 function bandOf(id: string): Spr {
   let s = BAND.get(id);
   if (s === undefined) {
@@ -332,6 +338,7 @@ export function drawGigi(c: Ctx, lo: Loadout, p: Pose): void {
   face(c, hx, hy, p, mood);
   // coiffe (bitmap) ; l'hélice tourne sauf en mouvement réduit
   c.save(); c.translate(hx, hy);
+  if (!p.calm && lo.hat !== 'head-none') c.rotate(Math.sin(wave * 5) * 0.045 - Math.max(-0.12, Math.min(0.12, p.vy * 0.0004)));
   put(c, hatOf(lo.hat));
   if (lo.hat === 'head-propeller') {
     c.translate(0, -15.5);
@@ -353,6 +360,15 @@ function drawPack(c: Ctx, id: string): void {
       ell(c, -1, 0, 8, 7, '#FFF6E0'); poly(c, [6, -2, 12, -6, 12, -4, 8, 1], '#FFF6E0'); rect(c, -4, -9, 6, 3, '#FFF6E0');
       c.fillStyle = '#E8402A'; for (const [dx, dy] of [[-4, -1], [1, 2], [0, -3]]) { c.beginPath(); c.arc(dx, dy, 1.3, 0, 6.3); c.fill(); }
       break;
+    case 'pack-carrot':
+      for (const dy of [-5, 4]) { poly(c, [-13, dy - 3, -9, dy - 1.5, -9, dy + 1.5, -13, dy + 3, -11, dy], '#2E9E4A'); poly(c, [-9, dy - 3.6, 6, dy - 1, 8, dy, 6, dy + 1, -9, dy + 3.6], '#FF8A1F'); }
+      break;
+    case 'pack-battery':
+      for (const dy of [-5, 4]) { rect(c, -9, dy - 3.5, 15, 7, '#2E9E4A'); rect(c, 6, dy - 1.8, 3, 3.6, '#C9CED6'); rect(c, -9, dy - 3.5, 4, 7, '#16110F', false); c.fillStyle = '#FFD60A'; c.fillRect(-2.5, dy - 0.6, 6, 1.2); c.fillRect(0, dy - 3, 1.2, 6); }
+      break;
+    case 'pack-rainbow':
+      for (const dy of [-5, 4]) { ['#E5322D', '#FFD60A', '#1F5FD0'].forEach((col, i) => { c.fillStyle = col; c.fillRect(-9 + i * 5.2, dy - 3.6, 5.4, 7.2); }); c.strokeRect(-9, dy - 3.6, 15.6, 7.2); c.beginPath(); c.moveTo(-3.8, dy - 3.6); c.lineTo(-3.8, dy + 3.6); c.moveTo(1.4, dy - 3.6); c.lineTo(1.4, dy + 3.6); c.stroke(); }
+      break;
     default:
       for (const dy of [-5, 4]) { poly(c, [-9, dy - 4, 4, dy - 4, 9, dy, 4, dy + 4, -9, dy + 4], '#C9CED6'); rect(c, -9, dy - 2, 3, 4, '#E5322D', false); }
   }
@@ -367,7 +383,7 @@ function drawPan(c: Ctx, id: string, len: number): void {
     const x = -4 - u * len;
     const y = 1;
     const w = 5.5 - u * 1.5;
-    c.fillStyle = i % 2 ? b : a;
+    c.fillStyle = id === 'scarf-rainbow' ? RAINBOW[i] : i % 2 ? b : a;
     c.fillRect(x - len / segs, y - w / 2, len / segs + 0.8, w);
     if (id === 'scarf-knit') { c.fillStyle = b; c.fillRect(x - len / segs, y - 0.4, len / segs, 1); }
     if (id === 'scarf-aviator' && i === segs - 1) { c.strokeStyle = INK; for (let k = 0; k < 3; k++) { c.beginPath(); c.moveTo(x - len / segs, y - 2 + k * 2); c.lineTo(x - len / segs - 2.5, y - 2.5 + k * 2); c.stroke(); } }
@@ -394,24 +410,51 @@ function drawHat(c: Ctx, id: string): void {
       c.beginPath(); c.arc(0, -3, 9, Math.PI * 1.5, 0); c.lineTo(0, -3); c.closePath(); c.fillStyle = '#1F5FD0'; c.fill(); c.stroke();
       rect(c, -0.8, -15, 1.6, 4, INK, false);
       break;
+    case 'head-shades':
+      c.strokeStyle = INK; c.lineWidth = 1.8; c.beginPath(); c.moveTo(-7, -2.5); c.lineTo(-11, -5); c.stroke(); c.lineWidth = LW;
+      poly(c, [-6.5, -4.5, 0.5, -4.5, 0.3, 1, -5.5, 1.6], INK); poly(c, [2, -4.5, 9.5, -4.5, 9, 0.6, 3, 1.2], INK);
+      c.fillStyle = '#FFFFFF'; c.fillRect(-5, -3.4, 2, 1.2); c.fillRect(3.6, -3.4, 2, 1.2);
+      c.strokeStyle = INK; c.beginPath(); c.moveTo(0.4, -3.5); c.lineTo(2, -3.5); c.stroke(); break;
+    case 'head-party':
+      c.save(); c.rotate(0.2);
+      poly(c, [-6, -6, 1, -23, 8, -6], '#FF5FA2'); c.beginPath(); c.moveTo(-3.6, -12); c.lineTo(5.6, -12); c.moveTo(-1.6, -17.5); c.lineTo(3.6, -17.5); c.strokeStyle = '#FFD60A'; c.lineWidth = 2; c.stroke(); c.strokeStyle = INK; c.lineWidth = LW;
+      ell(c, 1, -24, 2.6, 2.6, '#FFD60A'); c.restore(); break;
+    case 'head-flower':
+      for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; ell(c, Math.cos(a) * 5, -11 + Math.sin(a) * 5, 3.2, 1.9, '#FFD60A', true, a); }
+      ell(c, 0, -11, 3, 3, '#7A3E12'); break;
+    case 'head-chef':
+      ell(c, -5, -13, 4.6, 4.2, '#FFFFFF'); ell(c, 5, -13, 4.6, 4.2, '#FFFFFF'); ell(c, 0, -16, 5.2, 4.6, '#FFFFFF');
+      rect(c, -7.5, -10, 15, 6, '#FFFFFF'); break;
+    case 'head-tophat':
+      rect(c, -6.5, -23, 13, 15, '#2B2B3A'); rect(c, -6.5, -12.5, 13, 3.5, '#E5322D'); ell(c, 0, -8, 11.5, 2.8, '#2B2B3A'); break;
+    case 'head-wizard':
+      poly(c, [-8, -7, 1, -31, 8, -7], '#6B3FA0'); ell(c, 0, -7, 13, 3, '#6B3FA0');
+      star(c, 1, -17, 3.4, '#FFD60A', true); star(c, -3, -10.5, 1.8, '#FFFFFF'); break;
     case 'head-crown':
       poly(c, [-8, -7, -9, -17, -4, -12, 0, -19, 4, -12, 9, -17, 8, -7], '#FFC21A'); for (const gx of [-5, 0, 5]) ell(c, gx, -9.5, 1.5, 1.5, '#E5322D', false); break;
   }
 }
 
 /** Forme d'une particule de traînée (bitmap), centrée en (x, y), taille s. */
+const CONF_KEYS = ['trail-confetti0', 'trail-confetti1', 'trail-confetti2', 'trail-confetti3'];
 export function drawTrailShape(c: Ctx, id: string, x: number, y: number, s: number, _k: number): void {
-  let b = TRAIL.get(id);
+  const key = id === 'trail-confetti' ? CONF_KEYS[Math.abs(Math.floor(_k * 4)) & 3] : id;
+  let b = TRAIL.get(key);
   if (b === undefined) {
     b = bake(-9, -9, 18, 18, (cc) => {
       cc.lineWidth = 1.6;
       switch (id) {
         case 'trail-hearts': heart(cc, 0, 0, 5.5, '#E5322D'); break;
+        case 'trail-bubbles': cc.beginPath(); cc.arc(0, 0, 5, 0, 6.3); cc.fillStyle = '#BDE8FF'; cc.fill(); cc.stroke(); cc.beginPath(); cc.arc(-1.8, -1.8, 1.3, 0, 6.3); cc.fillStyle = '#FFFFFF'; cc.fill(); break;
+        case 'trail-confetti': cc.rotate(0.5 + (Math.abs(Math.floor(_k * 4)) & 3)); cc.fillStyle = ['#E5322D', '#FFD60A', '#1F5FD0', '#2E9E4A'][Math.abs(Math.floor(_k * 4)) & 3]; cc.fillRect(-4, -2.2, 8, 4.4); cc.strokeRect(-4, -2.2, 8, 4.4); break;
+        case 'trail-flowers':
+          for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; ell(cc, Math.cos(a) * 3.3, Math.sin(a) * 3.3, 2.5, 2.5, '#FF8FB8'); }
+          ell(cc, 0, 0, 2, 2, '#FFD60A'); break;
         case 'trail-stars': star(cc, 0, 0, 6.5, '#FFD60A', true); break;
         default: cc.beginPath(); cc.arc(0, 0, 4.5, 0, 6.3); cc.fillStyle = '#C9CED6'; cc.fill(); cc.stroke();
       }
     });
-    TRAIL.set(id, b);
+    TRAIL.set(key, b);
   }
   if (b) c.drawImage(b.cv, x - s * 0.9, y - s * 0.9, s * 1.8, s * 1.8);
 }
@@ -427,9 +470,17 @@ export function drawThumb(c: Ctx, itemId: string, slot: Slot, base: Loadout, w: 
     c.restore();
     return;
   }
+  if (slot === 'pack') {
+    const k = h / 30;
+    c.translate(w / 2, h / 2); c.scale(k, k);
+    c.lineWidth = LW; c.lineJoin = 'round'; c.strokeStyle = INK;
+    put(c, packOf(itemId)); rect(c, -4.5, 9, 7, 4, '#5c5568');
+    c.restore();
+    return;
+  }
   const pose: Pose = { vy: 0, t: 0.4, speed: 260, thrusting: false };
-  const zoom = slot === 'coat' ? 1.0 : slot === 'hat' ? 2.4 : slot === 'scarf' ? 2.0 : 1.9;
-  const focus: Record<string, [number, number]> = { coat: [-1, -13], hat: [9, -33], scarf: [-2, -14], pack: [-8, -2] };
+  const zoom = slot === 'coat' ? 1.0 : slot === 'hat' ? 2.0 : slot === 'scarf' ? 2.0 : 2.6;
+  const focus: Record<string, [number, number]> = { coat: [-1, -13], hat: [8, -39], scarf: [-2, -14], pack: [-19, -1] };
   const [fx, fy] = focus[slot];
   c.translate(w / 2 - fx * (h / 40) * (zoom / 1.5), h / 2 - fy * (h / 40) * (zoom / 1.5));
   const sc = (h / 40) * (zoom / 1.5);
