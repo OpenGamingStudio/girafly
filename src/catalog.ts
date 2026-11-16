@@ -1,4 +1,4 @@
-// Catalogue : 20 cosmétiques (équilibrage de Nora §7 : 5 pelages, 5 têtes, 4 jetpacks, 3 traînées, 3 écharpes) et 5 améliorations. Prix en pièces.
+// Catalogue : 39 cosmétiques (9 pelages, 11 têtes, 7 jetpacks, 6 traînées, 6 écharpes ; les 20 d'origine de Nora §7 + 19 achetables) et 5 améliorations. Prix en pièces.
 export type Slot = 'coat' | 'hat' | 'pack' | 'trail' | 'scarf';
 export const SLOTS: Slot[] = ['coat', 'hat', 'pack', 'trail', 'scarf'];
 export const SLOT_LABEL: Record<Slot, string> = {
@@ -23,25 +23,44 @@ export const ITEMS: Item[] = [
   it('coat-dots', 'coat', 'Pois', 0, 5),
   it('coat-stars', 'coat', 'Nuit étoilée', 0, 19),
   it('coat-harlequin', 'coat', 'Arlequin', 450),
+  it('coat-cow', 'coat', 'Vache', 220),
+  it('coat-berry', 'coat', 'Fraise', 320),
+  it('coat-mint', 'coat', 'Menthe', 380),
+  it('coat-gold', 'coat', 'Super-star', 700),
 
   it('head-goggles', 'hat', "Lunettes d'aviatrice", 0, 1),
   it('head-cap', 'hat', 'Casquette à l’envers', 100),
   it('head-beanie', 'hat', 'Bonnet à pompon', 250),
   it('head-propeller', 'hat', 'Hélice de casquette', 0, 10),
   it('head-crown', 'hat', 'Couronne', 0, 25),
+  it('head-shades', 'hat', 'Lunettes de soleil', 140),
+  it('head-party', 'hat', 'Chapeau de fête', 180),
+  it('head-flower', 'hat', 'Tournesol', 220),
+  it('head-chef', 'hat', 'Toque de chef', 300),
+  it('head-tophat', 'hat', 'Haut-de-forme', 420),
+  it('head-wizard', 'hat', 'Chapeau de magicien', 550),
 
   it('pack-retro', 'pack', 'Fusées rétro', 0),
   it('pack-milk', 'pack', 'Bidons de lait', 200),
   it('pack-soda', 'pack', 'Bouteilles de soda', 0, 7),
   it('pack-teapot', 'pack', 'Théière', 600),
+  it('pack-carrot', 'pack', 'Carottes-fusées', 260),
+  it('pack-battery', 'pack', 'Piles turbo', 340),
+  it('pack-rainbow', 'pack', 'Tuyaux arc-en-ciel', 520),
 
   it('trail-smoke', 'trail', 'Fumée', 0),
   it('trail-stars', 'trail', 'Étoiles', 0, 3),
   it('trail-hearts', 'trail', 'Cœurs', 300),
+  it('trail-bubbles', 'trail', 'Bulles', 160),
+  it('trail-confetti', 'trail', 'Confettis', 240),
+  it('trail-flowers', 'trail', 'Fleurs', 360),
 
   it('scarf-stripes', 'scarf', 'Rayée', 0),
   it('scarf-aviator', 'scarf', 'Aviatrice', 0, 14),
   it('scarf-knit', 'scarf', 'Tricot à pompons', 400),
+  it('scarf-candy', 'scarf', 'Bonbon', 170),
+  it('scarf-sun', 'scarf', 'Soleil', 230),
+  it('scarf-rainbow', 'scarf', 'Arc-en-ciel', 480),
 ];
 
 export const NONE: Record<Slot, string> = {

@@ -43,14 +43,14 @@ describe('sauvegarde', () => {
 });
 
 describe('catalogue', () => {
-  it('20 cosmétiques, répartis 5/5/4/3/3', () => {
+  it('39 cosmétiques, répartis 9/11/7/6/6', () => {
     const count = (s: 'coat' | 'hat' | 'pack' | 'trail' | 'scarf') => itemsOf(s).length;
-    expect(count('coat')).toBe(5);
-    expect(count('hat')).toBe(5);
-    expect(count('pack')).toBe(4);
-    expect(count('trail')).toBe(3);
-    expect(count('scarf')).toBe(3);
-    expect(ITEMS.length).toBe(20);
+    expect(count('coat')).toBe(9);
+    expect(count('hat')).toBe(11);
+    expect(count('pack')).toBe(7);
+    expect(count('trail')).toBe(6);
+    expect(count('scarf')).toBe(6);
+    expect(ITEMS.length).toBe(39);
     expect(new Set(ITEMS.map((i) => i.id)).size).toBe(ITEMS.length);
   });
   it('5 améliorations à 5 niveaux, coûts croissants', () => {
@@ -101,17 +101,17 @@ describe('missions et compteur', () => {
   });
 });
 
-describe('catalogue aligné sur l’équilibrage (20 cosmétiques)', () => {
-  it('compte 5/5/4/3/3 et offre les objets de mission au bon compteur', async () => {
+describe('catalogue aligné sur l’équilibrage (39 cosmétiques)', () => {
+  it('compte 9/11/7/6/6 et offre les objets de mission au bon compteur', async () => {
     const { ITEMS, itemsOf, freeIds, isUnlocked, itemById } = await import('../src/catalog');
-    expect(ITEMS.length).toBe(20);
-    expect(['coat', 'hat', 'pack', 'trail', 'scarf'].map((s) => itemsOf(s as never).length)).toEqual([5, 5, 4, 3, 3]);
+    expect(ITEMS.length).toBe(39);
+    expect(['coat', 'hat', 'pack', 'trail', 'scarf'].map((s) => itemsOf(s as never).length)).toEqual([9, 11, 7, 6, 6]);
     expect(freeIds(0).sort()).toEqual(['coat-classic', 'pack-retro', 'scarf-stripes', 'trail-smoke']);
     expect(freeIds(1)).toContain('head-goggles');
     expect(freeIds(24)).not.toContain('head-crown');
     expect(freeIds(25)).toContain('head-crown');
     expect(isUnlocked(itemById('coat-stars')!, { missionsDone: 18 })).toBe(false);
-    expect(ITEMS.filter((i) => i.price > 0).reduce((a, i) => a + i.price, 0)).toBe(2450);
+    expect(ITEMS.filter((i) => i.price > 0).reduce((a, i) => a + i.price, 0)).toBe(8640);
   });
   it('une sauvegarde à 19 missions possède le pelage nuit étoilée', () => {
     expect(migrate({ missionsDone: 19 }).owned).toContain('coat-stars');
