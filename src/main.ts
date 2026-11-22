@@ -14,7 +14,7 @@ import { boom, clearFx, coinBurst, dust, smoke, sparks, updateFx } from './fx';
 import { PY_MAX } from './geom';
 import { VERSION } from './version';
 import { TUTO_KIND, applyRun, missionText } from './missions';
-import { Save, load, localStore, persist } from './save';
+import { Save, load, localStore, migrate, persist } from './save';
 import {
   EV_BALLOON_END, EV_BEAM, EV_BONUS, EV_EVENT, EV_EVENT_END, EVENT_NAMES, EV_COIN, EV_DEAD, EV_GRAZE, EV_HIT, EV_WARN, Game, perksFor,
 } from './sim';
@@ -54,6 +54,7 @@ function say(t: string): void {
 }
 
 function show(s: Screen, focusId?: string): void {
+  window.OGSAccount?.show(s === 'title'); // le bouton compte n'est proposé que sur l'écran titre
   prevScreen = screen;
   screen = s;
   for (const [k, el] of Object.entries(panels)) if (el) el.hidden = k !== s;
@@ -662,6 +663,24 @@ $('b-a2hs-close').addEventListener('click', () => { hintPending = false; showHin
 if ('serviceWorker' in navigator && import.meta.env.PROD && import.meta.env.MODE === 'production') {
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* hors ligne indisponible : le jeu marche quand même */ }); });
 }
+
+// ---------- Compte OpenGamingStudio (facultatif) ----------
+declare global { interface Window { OGSAccount?: { init(c: Record<string, unknown>): void; show(on: boolean): void } } }
+window.OGSAccount?.init({
+  game: 'girafly', version: VERSION, color: '#ffc93c', anchor: 'top-left', offset: [8, 8],
+  getSave: () => save,
+  applySave: (d: unknown) => {
+    if (typeof d !== 'object' || d === null || Array.isArray(d)) return;
+    Object.assign(save, migrate(d));
+    sound.on = save.options.sound; sound.setVolume(save.options.volume);
+    flush();
+    applyMotion();
+    if (screen === 'title') openTitle('b-play');
+  },
+  isEmpty: (d: { games?: number; coins?: number; bestDist?: number }) => !d || (!d.games && !d.coins && !d.bestDist),
+  describe: (d: { bestDist?: number; coins?: number; missionsDone?: number }) =>
+    `Record ${d?.bestDist ?? 0} m · ${d?.coins ?? 0} pièces · ${d?.missionsDone ?? 0} missions`,
+});
 
 // ---------- Démarrage ----------
 applyMotion();
