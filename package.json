@@ -1,6 +1,6 @@
 {
   "name": "girafly",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
   "description": "Girafly : un runner à jetpack où Gigi la girafe vole entre lasers, missiles et acacias, jouable dans le navigateur et sur mobile.",
   "license": "MIT",

@@ -2,6 +2,9 @@
 
 Versions semver (x.y.z), affichées sur l'écran titre du jeu.
 
+## 2.2.0
+- Compte OpenGamingStudio facultatif (pseudo + code, Google ou Discord) : la progression suit le joueur sur tous ses appareils, sauvegarde automatique, sans e-mail. Le bouton n'apparaît que sur l'écran titre.
+
 ## 2.1.0
 - Cosmétiques : 39 objets (19 nouveaux achetables) : pelages Vache, Fraise, Menthe, Super-star ; têtes Lunettes de soleil, Chapeau de fête, Tournesol, Toque, Haut-de-forme, Chapeau de magicien ; jetpacks Carottes-fusées, Piles turbo, Tuyaux arc-en-ciel ; traînées Bulles, Confettis, Fleurs ; écharpes Bonbon, Soleil, Arc-en-ciel.
 - Les coiffes suivent la tête de Gigi et oscillent avec son mouvement.
